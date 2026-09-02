@@ -96,6 +96,19 @@
   details.sync-details summary{cursor:pointer;color:var(--accent);font-size:13px;list-style:none;}
   details.sync-details summary::-webkit-details-marker{display:none;}
   details.sync-details[open] summary{margin-bottom:12px;}
+
+  /* Speaking practice */
+  .speak-textarea{width:100%;min-height:80px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;margin-top:14px;}
+  .speak-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;width:100%;justify-content:center;align-items:center;}
+  .speak-prompt{font-size:17px;line-height:1.5;margin-top:6px;}
+  .speak-gloss{color:var(--muted);font-size:13px;margin-top:6px;}
+  .speak-reveal{margin-top:18px;padding-top:18px;border-top:1px dashed var(--border);width:100%;font-size:15px;color:var(--green);}
+  .mic-status{font-size:13px;margin-top:4px;min-height:18px;}
+  .mic-status.ok{color:var(--green);} .mic-status.bad{color:var(--orange);}
+  .hint-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin:14px 0;}
+  .hint-chip{background:var(--panel2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:13px;}
+  .hint-chip.used{border-color:var(--green);color:var(--green);}
+  .speak-note{color:var(--muted);font-size:12px;}
   @media (max-width:560px){
     .card .front{font-size:24px;} .card .translation{font-size:19px;}
     .grade-row button{font-size:12px;padding:12px 4px;}
@@ -117,6 +130,80 @@ const CAT_LABELS = {
 const BOX_DAYS = [0, 1, 3, 7, 16, 35, 90];
 const STORAGE_KEY = 'dutchVocabSRS_v1';
 const PREFS_KEY = 'dutchVocabPrefs_v1';
+
+// ---- Speaking practice: sentence templates & roleplay scenarios ----
+const SENTENCE_TEMPLATES = {
+  noun: ["Ik zie {art}{w} op tafel.", "Heb je {art}{w} al gezien?", "Dat is een mooie {w}."],
+  verb: ["Ik wil vandaag {w}.", "Kun je dat morgen {w}?", "We gaan straks samen {w}."],
+  irregular_verb: ["Ik wil vandaag {w}.", "Kun je dat morgen {w}?", "We gaan straks samen {w}."],
+  separable_verb: ["Ik wil dat morgen {w}.", "Kun je dat straks {w}?", "We gaan dat samen {w}."],
+  adjective: ["Ik vind dit heel {w}.", "Zij is best {w}.", "Dat klinkt {w}."],
+  adverb: ["Dat gebeurde {w}.", "Het is {w} klaar.", "Ik ga {w} naar huis."]
+};
+const OPEN_CATEGORIES = ['preposition_phrase','idiom','pronoun','conjunction'];
+
+const SCENARIOS = [
+  { dutch:"Je bent in een café. De ober vraagt: 'Wat wil je drinken?'", english:"You're in a café. The waiter asks: 'What would you like to drink?'", modelAnswer:"Ik wil graag een koffie met melk, alstublieft." },
+  { dutch:"De ober vraagt wat je wilt eten.", english:"The waiter asks what you'd like to eat.", modelAnswer:"Ik neem de soep en daarna de vis, graag." },
+  { dutch:"Een toerist vraagt je de weg naar het station.", english:"A tourist asks you the way to the station.", modelAnswer:"Ga rechtdoor en sla dan linksaf bij het stoplicht." },
+  { dutch:"Je ontmoet iemand nieuw op een feestje. Stel jezelf voor.", english:"You meet someone new at a party. Introduce yourself.", modelAnswer:"Hoi, ik ben Sanne. Leuk je te ontmoeten! Wat doe jij voor werk?" },
+  { dutch:"Een collega vraagt: 'Wat heb je dit weekend gedaan?'", english:"A colleague asks: 'What did you do this weekend?'", modelAnswer:"Ik ben naar het strand geweest en heb een boek gelezen." },
+  { dutch:"Je bent in een winkel. De verkoper vraagt: 'Kan ik u helpen?'", english:"You're in a shop. The salesperson asks: 'Can I help you?'", modelAnswer:"Ja, ik zoek een trui in maat medium." },
+  { dutch:"De huisarts vraagt: 'Wat zijn uw klachten?'", english:"The doctor asks: 'What are your symptoms?'", modelAnswer:"Ik heb al drie dagen hoofdpijn en ik voel me moe." },
+  { dutch:"Je wilt een vriend uitnodigen voor het weekend.", english:"You want to invite a friend for the weekend.", modelAnswer:"Heb je zin om zaterdag samen te gaan wandelen?" },
+  { dutch:"Het regent hard buiten en je wacht op de bus.", english:"It's raining hard outside and you're waiting for the bus.", modelAnswer:"Wat een weer, hè? Ik hoop dat het snel droog wordt." },
+  { dutch:"De conducteur vraagt om je kaartje.", english:"The conductor asks for your ticket.", modelAnswer:"Momentje, ik zoek mijn OV-kaart even." },
+  { dutch:"Je eten in het restaurant is koud.", english:"Your food at the restaurant is cold.", modelAnswer:"Sorry, maar mijn eten is helaas koud. Kunt u het opwarmen?" },
+  { dutch:"Je belt om een afspraak te maken bij de tandarts.", english:"You call to make an appointment at the dentist.", modelAnswer:"Goedemiddag, ik zou graag een afspraak willen maken voor volgende week." },
+  { dutch:"Je baas vraagt of je een rapport op tijd af hebt.", english:"Your boss asks if you'll have a report done on time.", modelAnswer:"Ja, ik ben er bijna klaar mee, ik stuur het morgenochtend." },
+  { dutch:"Je staat bij de kassa en de caissière vraagt: 'Heeft u een bonuskaart?'", english:"You're at the checkout and the cashier asks: 'Do you have a loyalty card?'", modelAnswer:"Nee, die heb ik niet, maar ik wil er wel graag een aanvragen." },
+  { dutch:"Iemand vraagt: 'Wat doe je graag in je vrije tijd?'", english:"Someone asks: 'What do you like to do in your free time?'", modelAnswer:"Ik hou van koken en in het weekend fiets ik graag door het park." },
+  { dutch:"Iemand vraagt naar je familie.", english:"Someone asks about your family.", modelAnswer:"Ik heb twee broers en we wonen alle drie in verschillende steden." },
+  { dutch:"Een vriend zegt: 'Ik vind Amsterdam de mooiste stad van Nederland.' Wat vind jij?", english:"A friend says: 'I think Amsterdam is the most beautiful city in the Netherlands.' What do you think?", modelAnswer:"Daar ben ik het mee eens, al vind ik Utrecht ook heel gezellig." },
+  { dutch:"Je belt de makelaar over een appartement dat je hebt gezien.", english:"You call the real estate agent about an apartment you saw.", modelAnswer:"Hallo, ik bel over de woning aan de Kerkstraat. Is die nog beschikbaar?" }
+];
+
+function fillTemplate(tpl, w){
+  const art = w.article ? w.article+' ' : '';
+  return tpl.replace(/\{art\}/g, art).replace(/\{w\}/g, w.dutch);
+}
+
+let nlVoice = null;
+function pickDutchVoice(){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = speechSynthesis.getVoices();
+  return voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('nl')) || null;
+}
+if('speechSynthesis' in window){
+  nlVoice = pickDutchVoice();
+  speechSynthesis.onvoiceschanged = ()=>{ nlVoice = pickDutchVoice(); };
+}
+function speakDutch(text){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'nl-NL';
+  u.rate = 0.9;
+  if(nlVoice) u.voice = nlVoice;
+  speechSynthesis.speak(u);
+}
+function supportsRecognition(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+function startRecognition(onResult, onError){
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!Recognition) return;
+  const rec = new Recognition();
+  rec.lang = 'nl-NL';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  rec.onresult = (e)=>{ onResult(e.results[0][0].transcript); };
+  rec.onerror = (e)=>{ if(onError) onError(e.error); };
+  rec.start();
+}
+function normalizeNl(s){
+  return String(s).toLowerCase().trim().replace(/[.,!?;:'"()]/g,'').replace(/\s+/g,' ');
+}
 
 let storageWorks = true;
 function safeGet(key){
@@ -167,6 +254,8 @@ function render(){
   else if(view==='study') app.innerHTML = renderStudy();
   else if(view==='summary') app.innerHTML = renderSummary();
   else if(view==='browse') app.innerHTML = renderBrowse();
+  else if(view==='speak') app.innerHTML = renderSpeak();
+  else if(view==='speakSummary') app.innerHTML = renderSpeakSummary();
   attachHandlers();
 }
 
@@ -234,6 +323,7 @@ function renderHome(){
     </div>
     <div class="startbar">
       <button class="bigbtn" id="startBtn" ${canStart?'':'disabled'}>Start studying →</button>
+      <button class="ghostbtn" id="startSpeakBtn" ${canStart?'':'disabled'}>🗣️ Speaking practice →</button>
       <span style="color:var(--muted);font-size:13px;">${fw.length} words match your filters</span>
     </div>
   </div>
@@ -426,6 +516,177 @@ function renderBrowse(){
   `;
 }
 
+// ---- Speaking practice session ----
+let speakSession = null; // {queue, pos, seenTotal, revealed, micHeard, micOk, counts}
+
+function pickTemplate(w){
+  const list = SENTENCE_TEMPLATES[w.category];
+  if(!list) return null;
+  return list[Math.floor(Math.random()*list.length)];
+}
+
+function buildSpeakQueue(){
+  let fw = filteredWords();
+  shuffle(fw);
+  const size = prefs.sessionSize===999 ? fw.length : Math.min(prefs.sessionSize, fw.length);
+  fw = fw.slice(0, size);
+  const queue = [];
+  fw.forEach((w,i)=>{
+    const type = i%2===0 ? 'pronounce' : 'sentence';
+    const item = { type, id:w.id };
+    if(type==='sentence') item.template = pickTemplate(w);
+    queue.push(item);
+    if((i+1)%5===0 && fw.length>1){
+      const others = fw.filter(x=>x.id!==w.id);
+      shuffle(others);
+      const hintIds = others.slice(0,2).map(x=>x.id);
+      const scenario = SCENARIOS[Math.floor(Math.random()*SCENARIOS.length)];
+      queue.push({ type:'roleplay', scenario, hintIds });
+    }
+  });
+  return queue;
+}
+
+function startSpeakSession(){
+  const queue = buildSpeakQueue();
+  speakSession = { queue, pos:0, seenTotal:queue.length, revealed:false, micHeard:'', micOk:null, counts:{pronounce:0,sentence:0,roleplay:0} };
+  view='speak';
+  render();
+}
+
+function currentSpeakItem(){
+  if(!speakSession) return null;
+  if(speakSession.pos >= speakSession.queue.length) return null;
+  return speakSession.queue[speakSession.pos];
+}
+
+function nextSpeakItem(){
+  const item = currentSpeakItem();
+  if(item) speakSession.counts[item.type]++;
+  speakSession.pos++;
+  speakSession.revealed = false;
+  speakSession.micHeard = '';
+  speakSession.micOk = null;
+  render();
+}
+
+function renderSpeak(){
+  const item = currentSpeakItem();
+  if(!item){ view='speakSummary'; return renderSpeakSummary(); }
+  const pct = Math.round((speakSession.pos/speakSession.seenTotal)*100);
+  let body = '';
+  if(item.type==='pronounce') body = renderPronounceCard(item);
+  else if(item.type==='sentence') body = renderSentenceCard(item);
+  else body = renderRoleplayCard(item);
+  return `
+  <header class="top">
+    <h1>🇳🇱 Dutch <span>Vocabulary Trainer</span></h1>
+    <button class="navbtn" data-nav="home">✕ End session</button>
+  </header>
+  <div class="study-wrap">
+    <div class="progressbar"><div class="fill" style="width:${pct}%"></div></div>
+    ${body}
+    <div class="flip-hint">${speakSession.pos+1} / ${speakSession.seenTotal} in this session</div>
+  </div>
+  `;
+}
+
+function renderPronounceCard(item){
+  const w = WORDS.find(x=>x.id===item.id);
+  const front = (w.article? `<span class="article">${w.article}</span>`:'') + escapeHtml(w.dutch);
+  const micBlock = supportsRecognition() ? `
+        <button class="smallbtn" id="micBtn">🎤 Spreek na</button>` : `<div class="speak-note">Spraakherkenning wordt niet ondersteund in deze browser — probeer Chrome.</div>`;
+  const micStatusClass = speakSession.micOk===true?'ok':(speakSession.micOk===false?'bad':'');
+  const micStatus = speakSession.micHeard ? `<div class="mic-status ${micStatusClass}">Ik hoorde: “${escapeHtml(speakSession.micHeard)}”${speakSession.micOk?' ✓':''}</div>` : '';
+  const glossBlock = speakSession.revealed ? `<div class="speak-reveal">${escapeHtml(w.english)}</div>` : `<div class="flip-hint">Klik op de kaart om de vertaling te zien</div>`;
+  return `
+    <div class="card" id="glossCard">
+      <div class="tags"><span>${CAT_LABELS[w.category]} · H${w.chapter}</span></div>
+      <div class="front">${front}</div>
+      <div class="speak-row">
+        <button class="smallbtn" id="listenBtn">🔊 Luister</button>
+        ${micBlock}
+      </div>
+      ${micStatus}
+      ${glossBlock}
+    </div>
+    <div class="speak-row">
+      <button class="bigbtn" id="nextBtn">Volgende →</button>
+    </div>
+  `;
+}
+
+function renderSentenceCard(item){
+  const w = WORDS.find(x=>x.id===item.id);
+  const isOpen = OPEN_CATEGORIES.includes(w.category);
+  const promptText = isOpen
+    ? `Maak een eigen zin met: <b>${escapeHtml(w.dutch)}</b>`
+    : `Maak een zin met: <b>${escapeHtml(w.dutch)}</b><br><span class="speak-gloss">Bijv. structuur: "${escapeHtml(item.template.replace('{art}', w.article?w.article+' ':'').replace('{w}','...'))}"</span>`;
+  const revealBlock = speakSession.revealed
+    ? `<div class="speak-reveal">${isOpen ? escapeHtml(w.english) : escapeHtml(fillTemplate(item.template, w))}</div>`
+    : '';
+  return `
+    <div class="card">
+      <div class="tags"><span>${CAT_LABELS[w.category]} · H${w.chapter}</span></div>
+      <div class="speak-prompt">${promptText}</div>
+      <div class="speak-gloss">${escapeHtml(w.english)}</div>
+      <textarea class="speak-textarea" id="sentenceInput" placeholder="Typ (of zeg hardop) je zin in het Nederlands..."></textarea>
+      <div class="speak-row">
+        <button class="smallbtn" id="listenBtn">🔊 Luister naar het woord</button>
+        <button class="smallbtn" id="revealBtn">${isOpen?'Toon tip':'Toon voorbeeldzin'}</button>
+      </div>
+      ${revealBlock}
+    </div>
+    <div class="speak-row">
+      <button class="bigbtn" id="nextBtn">Volgende →</button>
+    </div>
+  `;
+}
+
+function renderRoleplayCard(item){
+  const hints = item.hintIds.map(id=>WORDS.find(w=>w.id===id));
+  const chips = hints.map(w=>`<span class="hint-chip" data-hintword="${escapeHtml(w.dutch)}">${escapeHtml(w.dutch)} <span class="speak-gloss">(${escapeHtml(w.english)})</span></span>`).join('');
+  const revealBlock = speakSession.revealed ? `
+    <div class="speak-reveal">${escapeHtml(item.scenario.modelAnswer)}
+      <div class="speak-row"><button class="smallbtn" id="listenAnswerBtn">🔊 Luister naar het antwoord</button></div>
+    </div>` : '';
+  return `
+    <div class="card">
+      <div class="tags"><span>Roleplay</span></div>
+      <div class="speak-prompt">${escapeHtml(item.scenario.dutch)}</div>
+      <div class="speak-gloss">${escapeHtml(item.scenario.english)}</div>
+      <div class="hint-chips">Probeer te gebruiken: ${chips}</div>
+      <textarea class="speak-textarea" id="roleplayInput" placeholder="Typ (of zeg hardop) je antwoord..."></textarea>
+      <div class="speak-row">
+        <button class="smallbtn" id="listenBtn">🔊 Luister naar de vraag</button>
+        <button class="smallbtn" id="revealBtn">Toon voorbeeldantwoord</button>
+      </div>
+      ${revealBlock}
+    </div>
+    <div class="speak-row">
+      <button class="bigbtn" id="nextBtn">Volgende →</button>
+    </div>
+  `;
+}
+
+function renderSpeakSummary(){
+  const c = speakSession ? speakSession.counts : {pronounce:0,sentence:0,roleplay:0};
+  const total = c.pronounce + c.sentence + c.roleplay;
+  return `
+  <header class="top"><h1>🇳🇱 Dutch <span>Vocabulary Trainer</span></h1></header>
+  <div class="panel summary">
+    <h2>Speaking practice klaar 🗣️</h2>
+    <p>Je hebt ${total} oefeningen gedaan.</p>
+    <div class="summary-stats">
+      <div><div class="n" style="color:var(--blue)">${c.pronounce}</div>Uitspraak</div>
+      <div><div class="n" style="color:var(--green)">${c.sentence}</div>Zinnen</div>
+      <div><div class="n" style="color:var(--orange)">${c.roleplay}</div>Roleplay</div>
+    </div>
+    <button class="bigbtn" data-nav="home">Back to overview</button>
+  </div>
+  `;
+}
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -483,7 +744,7 @@ function applyImportPayload(text){
 }
 
 function attachHandlers(){
-  document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{ view = el.dataset.nav; session=null; render(); });
+  document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{ view = el.dataset.nav; session=null; speakSession=null; render(); });
 
   if(view==='home'){
     document.querySelectorAll('.chip[data-chapter]').forEach(el=>{
@@ -512,6 +773,8 @@ function attachHandlers(){
     if(sizeSel) sizeSel.onchange = ()=>{ prefs.sessionSize = Number(sizeSel.value); savePrefs(); };
     const startBtn = document.getElementById('startBtn');
     if(startBtn) startBtn.onclick = startSession;
+    const startSpeakBtn = document.getElementById('startSpeakBtn');
+    if(startSpeakBtn) startSpeakBtn.onclick = startSpeakSession;
 
     const btnExportFile = document.getElementById('btnExportFile');
     if(btnExportFile) btnExportFile.onclick = downloadExportFile;
@@ -538,6 +801,49 @@ function attachHandlers(){
     const card = document.getElementById('flipCard');
     if(card) card.onclick = ()=>{ if(!session.revealed){ session.revealed=true; render(); } };
     document.querySelectorAll('[data-grade]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); grade(el.dataset.grade); });
+  }
+
+  if(view==='speak'){
+    const item = currentSpeakItem();
+    if(item){
+      const listenBtn = document.getElementById('listenBtn');
+      if(listenBtn) listenBtn.onclick = ()=>{
+        if(item.type==='roleplay') speakDutch(item.scenario.dutch);
+        else speakDutch(WORDS.find(x=>x.id===item.id).dutch);
+      };
+      const listenAnswerBtn = document.getElementById('listenAnswerBtn');
+      if(listenAnswerBtn) listenAnswerBtn.onclick = ()=> speakDutch(item.scenario.modelAnswer);
+      const micBtn = document.getElementById('micBtn');
+      if(micBtn) micBtn.onclick = ()=>{
+        micBtn.disabled = true; micBtn.textContent = '🎤 Luisteren...';
+        startRecognition(
+          (transcript)=>{
+            const w = WORDS.find(x=>x.id===item.id);
+            speakSession.micHeard = transcript;
+            speakSession.micOk = normalizeNl(transcript).includes(normalizeNl(w.dutch)) || normalizeNl(w.dutch).includes(normalizeNl(transcript));
+            render();
+          },
+          ()=>{ speakSession.micHeard=''; speakSession.micOk=null; micBtn.disabled=false; micBtn.textContent='🎤 Spreek na'; }
+        );
+      };
+      const glossCard = document.getElementById('glossCard');
+      if(glossCard) glossCard.onclick = ()=>{ if(!speakSession.revealed){ speakSession.revealed=true; render(); } };
+      const revealBtn = document.getElementById('revealBtn');
+      if(revealBtn) revealBtn.onclick = ()=>{ speakSession.revealed = true; render(); };
+      const nextBtn = document.getElementById('nextBtn');
+      if(nextBtn) nextBtn.onclick = nextSpeakItem;
+      const roleplayInput = document.getElementById('roleplayInput');
+      if(roleplayInput){
+        roleplayInput.oninput = ()=>{
+          const text = roleplayInput.value.toLowerCase();
+          document.querySelectorAll('.hint-chip').forEach(chip=>{
+            const hw = chip.dataset.hintword.toLowerCase();
+            const stem = hw.slice(0, Math.min(5, hw.length));
+            chip.classList.toggle('used', text.includes(stem));
+          });
+        };
+      }
+    }
   }
 
   if(view==='browse'){
