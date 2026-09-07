@@ -103,12 +103,9 @@
   .speak-prompt{font-size:17px;line-height:1.5;margin-top:6px;}
   .speak-gloss{color:var(--muted);font-size:13px;margin-top:6px;}
   .speak-reveal{margin-top:18px;padding-top:18px;border-top:1px dashed var(--border);width:100%;font-size:15px;color:var(--green);}
-  .mic-status{font-size:13px;margin-top:4px;min-height:18px;}
-  .mic-status.ok{color:var(--green);} .mic-status.bad{color:var(--orange);}
   .hint-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin:14px 0;}
   .hint-chip{background:var(--panel2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:13px;}
   .hint-chip.used{border-color:var(--green);color:var(--green);}
-  .speak-note{color:var(--muted);font-size:12px;}
   @media (max-width:560px){
     .card .front{font-size:24px;} .card .translation{font-size:19px;}
     .grade-row button{font-size:12px;padding:12px 4px;}
@@ -187,33 +184,6 @@ function speakDutch(text){
   if(nlVoice) u.voice = nlVoice;
   speechSynthesis.speak(u);
 }
-function supportsRecognition(){
-  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-}
-let activeRecognition = null;
-function startRecognition(onResult, onError){
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!Recognition){ if(onError) onError('unsupported'); return null; }
-  const rec = new Recognition();
-  rec.lang = 'nl-NL';
-  rec.interimResults = false;
-  rec.maxAlternatives = 1;
-  let settled = false;
-  rec.onresult = (e)=>{ settled = true; onResult(e.results[0][0].transcript); };
-  rec.onerror = (e)=>{ settled = true; if(onError) onError(e.error); };
-  // Some browsers fire 'end' with neither a result nor an error (e.g. very short/quiet
-  // utterances) — without this the mic button would stay stuck on "Luisteren...".
-  rec.onend = ()=>{ if(activeRecognition===rec) activeRecognition = null; if(!settled && onError) onError('no-speech'); };
-  try{ rec.start(); }catch(e){ if(onError) onError('start-failed'); return null; }
-  activeRecognition = rec;
-  // Watchdog: force-stop if the recognition service itself hangs and never fires an event.
-  setTimeout(()=>{ if(activeRecognition===rec){ try{ rec.stop(); }catch(e){} } }, 15000);
-  return rec;
-}
-function normalizeNl(s){
-  return String(s).toLowerCase().trim().replace(/[.,!?;:'"()]/g,'').replace(/\s+/g,' ');
-}
-
 let storageWorks = true;
 function safeGet(key){
   try{ return localStorage.getItem(key); }catch(e){ storageWorks=false; return null; }
@@ -226,7 +196,7 @@ let srs = {};
 try{ srs = JSON.parse(safeGet(STORAGE_KEY)) || {}; }catch(e){ srs = {}; }
 function saveSRS(){ safeSet(STORAGE_KEY, JSON.stringify(srs)); }
 
-let prefs = { chapters: null, categories: null, direction: 'mixed', sessionSize: 30, speakTypes: ['pronounce','sentence','roleplay'] };
+let prefs = { chapters: null, categories: null, direction: 'mixed', sessionSize: 30, reviewMode: 'due', speakTypes: ['pronounce','sentence','roleplay'] };
 try{ const p = JSON.parse(safeGet(PREFS_KEY)); if(p) prefs = Object.assign(prefs,p); }catch(e){}
 function savePrefs(){ safeSet(PREFS_KEY, JSON.stringify(prefs)); }
 
@@ -331,16 +301,22 @@ function renderHome(){
     <div class="chip-grid">${catChips}</div>
   </div>
   <div class="panel">
-    <h2>Direction & session length</h2>
+    <h2>Study settings</h2>
+    <div class="startbar">
+      <div class="seg" id="reviewseg">
+        <button data-review="due" class="${prefs.reviewMode==='due'?'active':''}">Due & new only</button>
+        <button data-review="all" class="${prefs.reviewMode==='all'?'active':''}">Revise all selected words</button>
+      </div>
+    </div>
     <div class="startbar">
       <div class="seg" id="dirseg">${dirSeg}</div>
       <select id="sessionSize">
-        ${[15,20,30,50,80,999].map(n=>`<option value="${n}" ${prefs.sessionSize===n?'selected':''}>${n===999?'All due/new':n+' cards'}</option>`).join('')}
+        ${[15,20,30,50,80,999].map(n=>`<option value="${n}" ${prefs.sessionSize===n?'selected':''}>${n===999?(prefs.reviewMode==='all'?'All selected words':'All due/new'):n+' cards'}</option>`).join('')}
       </select>
     </div>
     <div class="startbar">
       <button class="bigbtn" id="startBtn" ${canStart?'':'disabled'}>Start studying →</button>
-      <span style="color:var(--muted);font-size:13px;">${fw.length} words match your filters</span>
+      <span style="color:var(--muted);font-size:13px;">${fw.length} words match your filters${prefs.reviewMode==='all' ? ' (revising all, regardless of schedule)' : ''}</span>
     </div>
   </div>
   <div class="panel">
@@ -385,10 +361,16 @@ function pickDirection(word){
 
 function buildQueue(){
   let fw = filteredWords();
-  const dueWords = fw.filter(w=>!isNew(w.id) && isDue(w.id));
-  const newWords = fw.filter(w=>isNew(w.id));
-  shuffle(dueWords); shuffle(newWords);
-  let pool = dueWords.concat(newWords);
+  let pool;
+  if(prefs.reviewMode==='all'){
+    pool = fw.slice();
+    shuffle(pool);
+  } else {
+    const dueWords = fw.filter(w=>!isNew(w.id) && isDue(w.id));
+    const newWords = fw.filter(w=>isNew(w.id));
+    shuffle(dueWords); shuffle(newWords);
+    pool = dueWords.concat(newWords);
+  }
   const size = prefs.sessionSize;
   if(size!==999) pool = pool.slice(0, size);
   return pool.map(w=>({ id:w.id, dir: pickDirection(w) }));
@@ -543,7 +525,7 @@ function renderBrowse(){
 }
 
 // ---- Speaking practice session ----
-let speakSession = null; // {queue, pos, seenTotal, revealed, micHeard, micOk, counts}
+let speakSession = null; // {queue, pos, seenTotal, revealed, counts}
 
 function pickTemplate(w){
   const list = SENTENCE_TEMPLATES[w.category];
@@ -601,7 +583,7 @@ function buildSpeakQueue(){
 
 function startSpeakSession(){
   const queue = buildSpeakQueue();
-  speakSession = { queue, pos:0, seenTotal:queue.length, revealed:false, micHeard:'', micOk:null, micError:'', listening:false, counts:{pronounce:0,sentence:0,roleplay:0} };
+  speakSession = { queue, pos:0, seenTotal:queue.length, revealed:false, counts:{pronounce:0,sentence:0,roleplay:0} };
   view='speak';
   render();
 }
@@ -617,11 +599,6 @@ function nextSpeakItem(){
   if(item) speakSession.counts[item.type]++;
   speakSession.pos++;
   speakSession.revealed = false;
-  speakSession.micHeard = '';
-  speakSession.micOk = null;
-  speakSession.micError = '';
-  speakSession.listening = false;
-  if(activeRecognition){ try{ activeRecognition.stop(); }catch(e){} activeRecognition = null; }
   render();
 }
 
@@ -649,14 +626,6 @@ function renderSpeak(){
 function renderPronounceCard(item){
   const w = WORDS.find(x=>x.id===item.id);
   const front = (w.article? `<span class="article">${w.article}</span>`:'') + escapeHtml(w.dutch);
-  const listening = !!speakSession.listening;
-  const micBlock = supportsRecognition() ? `
-        <button class="smallbtn" id="micBtn">${listening ? '⏹ Stop (klik als je klaar bent)' : '🎤 Spreek na'}</button>` : `<div class="speak-note">Spraakherkenning wordt niet ondersteund in deze browser — probeer Chrome.</div>`;
-  const micStatusClass = speakSession.micOk===true?'ok':(speakSession.micOk===false || speakSession.micError ?'bad':'');
-  const micStatus = speakSession.micError ? `<div class="mic-status ${micStatusClass}">${escapeHtml(speakSession.micError)}</div>`
-    : speakSession.micHeard ? `<div class="mic-status ${micStatusClass}">Ik hoorde: “${escapeHtml(speakSession.micHeard)}”${speakSession.micOk?' ✓':''}</div>`
-    : listening ? `<div class="mic-status">🎙️ Aan het luisteren... spreek nu, klik dan op stop.</div>`
-    : '';
   const glossBlock = speakSession.revealed ? `<div class="speak-reveal">${escapeHtml(w.english)}</div>` : `<div class="flip-hint">Klik op de kaart om de vertaling te zien</div>`;
   return `
     <div class="card" id="glossCard">
@@ -664,9 +633,7 @@ function renderPronounceCard(item){
       <div class="front">${front}</div>
       <div class="speak-row">
         <button class="smallbtn" id="listenBtn">🔊 Luister</button>
-        ${micBlock}
       </div>
-      ${micStatus}
       ${glossBlock}
     </div>
     <div class="speak-row">
@@ -836,6 +803,8 @@ function attachHandlers(){
     });
     const allSpeak = document.querySelectorAll('[data-allspeak]');
     if(allSpeak.length) allSpeak.forEach(el=>el.onclick=()=>{ prefs.speakTypes = el.dataset.allspeak==='all'? ['pronounce','sentence','roleplay'] : []; savePrefs(); render(); });
+    const reviewseg = document.getElementById('reviewseg');
+    if(reviewseg) reviewseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ prefs.reviewMode=b.dataset.review; savePrefs(); render(); });
     const dirseg = document.getElementById('dirseg');
     if(dirseg) dirseg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ prefs.direction=b.dataset.dir; savePrefs(); render(); });
     const sizeSel = document.getElementById('sessionSize');
@@ -882,29 +851,6 @@ function attachHandlers(){
       };
       const listenAnswerBtn = document.getElementById('listenAnswerBtn');
       if(listenAnswerBtn) listenAnswerBtn.onclick = ()=> speakDutch(item.scenario.modelAnswer);
-      const micBtn = document.getElementById('micBtn');
-      if(micBtn) micBtn.onclick = ()=>{
-        if(speakSession.listening){ if(activeRecognition) activeRecognition.stop(); return; }
-        speakSession.micHeard = ''; speakSession.micOk = null; speakSession.micError = ''; speakSession.listening = true;
-        const w = WORDS.find(x=>x.id===item.id);
-        startRecognition(
-          (transcript)=>{
-            speakSession.listening = false;
-            speakSession.micHeard = transcript;
-            speakSession.micOk = normalizeNl(transcript).includes(normalizeNl(w.dutch)) || normalizeNl(w.dutch).includes(normalizeNl(transcript));
-            render();
-          },
-          (err)=>{
-            speakSession.listening = false;
-            speakSession.micError = err==='not-allowed' || err==='service-not-allowed' ? 'Microfoon geweigerd — geef toestemming in je browser en probeer opnieuw.'
-              : err==='no-speech' ? 'Ik heb niets gehoord — probeer het nog eens.'
-              : err==='unsupported' ? 'Spraakherkenning wordt niet ondersteund in deze browser.'
-              : 'Kon je spraak niet verwerken — probeer het nog eens.';
-            render();
-          }
-        );
-        render();
-      };
       const glossCard = document.getElementById('glossCard');
       if(glossCard) glossCard.onclick = ()=>{ if(!speakSession.revealed){ speakSession.revealed=true; render(); } };
       const revealBtn = document.getElementById('revealBtn');
