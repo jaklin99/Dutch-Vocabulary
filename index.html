@@ -160,6 +160,349 @@ const SCENARIOS = [
   { dutch:"Je belt de makelaar over een appartement dat je hebt gezien.", english:"You call the real estate agent about an apartment you saw.", modelAnswer:"Hallo, ik bel over de woning aan de Kerkstraat. Is die nog beschikbaar?" }
 ];
 
+const ADJ_SYNANT = {
+  5:{"syn":["nieuwsgierig"],"ant":["onverschillig"]},
+  7:{"syn":["nederig"],"ant":["verwaand"]},
+  11:{"syn":["inventief"]},
+  13:{"syn":["erkentelijk"],"ant":["ondankbaar"]},
+  14:{"syn":["geliefd"]},
+  18:{"syn":["enthousiast", "geestdriftig"],"ant":["onverschillig"]},
+  20:{"syn":["serieus"],"ant":["luchtig"]},
+  25:{"ant":["ongeduldig"]},
+  26:{"syn":["riskant"],"ant":["veilig"]},
+  30:{"syn":["komisch"],"ant":["saai"]},
+  35:{"syn":["imponerend"],"ant":["onopvallend"]},
+  50:{"syn":["privé"],"ant":["onpersoonlijk"]},
+  68:{"syn":["krachtig"],"ant":["zwak"]},
+  77:{"syn":["fier"],"ant":["beschaamd"]},
+  89:{"syn":["tijdelijk"],"ant":["definitief"]},
+  91:{"syn":["blij"],"ant":["verdrietig"]},
+  159:{"syn":["stom"],"ant":["slim"]},
+  165:{"syn":["gezamenlijk"],"ant":["individueel"]},
+  166:{"syn":["doorsnee"]},
+  172:{"syn":["inbegrepen"],"ant":["exclusief"]},
+  173:{"syn":["heftig"],"ant":["licht"]},
+  184:{"syn":["lawaaierig"],"ant":["stil"]},
+  186:{"syn":["gematigd"],"ant":["extreem"]},
+  187:{"syn":["vanzelfsprekend"],"ant":["kunstmatig"]},
+  192:{"syn":["stabiel"],"ant":["wankel"]},
+  199:{"syn":["geweldig"],"ant":["waardeloos"]},
+  210:{"syn":["mild"],"ant":["hard"]},
+  254:{"syn":["gereserveerd"],"ant":["hartelijk"]},
+  261:{"syn":["echt"],"ant":["onecht"]},
+  285:{"syn":["buitensporig"],"ant":["sober"]},
+  293:{"syn":["prima"],"ant":["slecht"]},
+  309:{"syn":["krokant"],"ant":["slap"]},
+  317:{"syn":["lokaal"],"ant":["nationaal"]},
+  323:{"syn":["vervelend"],"ant":["interessant"]},
+  335:{"syn":["energiek"],"ant":["saai"]},
+  340:{"syn":["luidruchtig"],"ant":["zacht"]},
+  346:{"syn":["landelijk"],"ant":["plaatselijk"]},
+  353:{"syn":["netjes"],"ant":["vuil"]},
+  355:{"syn":["bloedheet"],"ant":["ijskoud"]},
+  356:{"ant":["asociaal"]},
+  367:{"syn":["klassiek"],"ant":["modern"]},
+  369:{"syn":["uitvoerig"],"ant":["beknopt"]},
+  438:{"syn":["angstig"],"ant":["fris"]},
+  444:{"syn":["zwoel"],"ant":["fris"]},
+  445:{"syn":["behaaglijk"],"ant":["oncomfortabel"]},
+  448:{"ant":["dun"]},
+  457:{"syn":["reusachtig"],"ant":["piepklein"]},
+  459:{"syn":["bedreven"],"ant":["onervaren"]},
+  460:{"ant":["alledaags"]},
+  461:{"syn":["smakeloos"],"ant":["pittig"]},
+  463:{"syn":["koel"],"ant":["muf"]},
+  467:{"ant":["halfvol"]},
+  468:{"ant":["halfleeg"]},
+  469:{"syn":["warm"],"ant":["koud"]},
+  473:{"ant":["laag"]},
+  474:{"syn":["koud"],"ant":["snikheet"]},
+  481:{"syn":["gezellig"],"ant":["ongezellig"]},
+  482:{"syn":["fris"],"ant":["warm"]},
+  484:{"syn":["beperkt"],"ant":["ruim"]},
+  486:{"ant":["vol"]},
+  487:{"syn":["lusteloos"],"ant":["energiek"]},
+  493:{"syn":["rustig"],"ant":["gespannen"]},
+  505:{"syn":["opwindend"],"ant":["saai"]},
+  511:{"syn":["geweldig"],"ant":["waardeloos"]},
+  512:{"syn":["kunstmatig"],"ant":["natuurlijk"]},
+  518:{"syn":["doodmoe"],"ant":["fit"]},
+  521:{"syn":["natuurlijk"],"ant":["twijfelachtig"]},
+  528:{"syn":["afgelopen"],"ant":["toekomstig"]},
+  538:{"syn":["woest"],"ant":["tam"]},
+  548:{"syn":["broeierig"],"ant":["fris"]},
+  616:{"syn":["alledaags"]},
+  617:{"ant":["andere"]},
+  650:{"syn":["slim"],"ant":["lelijk"]},
+  656:{"ant":["vrouwelijk"]},
+  665:{"syn":["actief"],"ant":["lui"]},
+  669:{"ant":["terecht"]},
+  692:{"syn":["ernstig"],"ant":["grappig"]},
+  706:{"syn":["uitzonderlijk"],"ant":["gewoon"]},
+  716:{"ant":["mannelijk"]},
+  727:{"syn":["attent"],"ant":["onverschillig"]},
+  781:{"syn":["energiek"],"ant":["passief"]},
+  786:{"ant":["onbereikbaar"]},
+  791:{"ant":["acuut"]},
+  792:{"syn":["gezamenlijk"],"ant":["individueel"]},
+  797:{"syn":["continu"],"ant":["wisselend"]},
+  807:{"syn":["gezond"],"ant":["uitgeput"]},
+  810:{"ant":["mentaal"]},
+  811:{"syn":["gemotiveerd"],"ant":["lusteloos"]},
+  813:{"syn":["rustig"],"ant":["ongerust"]},
+  819:{"ant":["hoopvol"]},
+  822:{"syn":["complex"],"ant":["simpel"]},
+  823:{"syn":["vernieuwend"],"ant":["traditioneel"]},
+  831:{"ant":["fysiek"]},
+  837:{"ant":["bereikbaar"]},
+  841:{"ant":["voldoende"]},
+  843:{"syn":["ideaal"],"ant":["slecht"]},
+  853:{"syn":["normaal"],"ant":["speciaal"]},
+  862:{"syn":["ontspannen"],"ant":["stressvol"]},
+  874:{"ant":["onvoldoende"]},
+  911:{"ant":["productief"]},
+  912:{"syn":["werkelijk"],"ant":["schijnbaar"]},
+  920:{"syn":["correct"],"ant":["ongelijk"]},
+  962:{"syn":["plat"],"ant":["oneffen"]},
+  1007:{"syn":["afzonderlijk"]},
+  1011:{"ant":["binnenlands"]},
+  1014:{"syn":["milieuvriendelijk"]},
+  1033:{"syn":["duurzaam"]},
+  1108:{"syn":["muisstil"],"ant":["luidruchtig"]},
+  1112:{"syn":["dwaas"],"ant":["normaal"]},
+  1114:{"syn":["verbonden"],"ant":["los"]},
+  1119:{"syn":["moeilijk"],"ant":["makkelijk"]},
+  1129:{"ant":["aangekondigd"]},
+  1130:{"ant":["beleefd"]},
+  1131:{"ant":["denkbaar"]},
+  1133:{"ant":["geschreven"]},
+  1135:{"ant":["diepgaand"]},
+  1142:{"ant":["privé"]},
+  1146:{"syn":["zeldzaam"],"ant":["overvloedig"]},
+  1148:{"syn":["impulsief"],"ant":["gepland"]},
+  1149:{"syn":["strikt"],"ant":["soepel"]},
+  1150:{"syn":["streng"],"ant":["soepel"]},
+  1159:{"syn":["constant"],"ant":["tijdelijk"]},
+  1163:{"syn":["mondiaal"],"ant":["plaatselijk"]},
+  1224:{"ant":["elektronisch"]},
+  1227:{"syn":["soortgelijk"]},
+  1228:{"ant":["analoog"]},
+  1229:{"ant":["enkel"]},
+  1238:{"ant":["collectief"]},
+  1244:{"syn":["aardig"],"ant":["gemeen"]},
+  1246:{"syn":["talrijk"],"ant":["individueel"]},
+  1254:{"ant":["comfortabel"]},
+  1259:{"syn":["verouderd"],"ant":["modern"]},
+  1262:{"syn":["functioneel"],"ant":["onpraktisch"]},
+  1263:{"syn":["vreemd"],"ant":["normaal"]},
+  1264:{"syn":["bliksemsnel"],"ant":["langzaam"]},
+  1265:{"syn":["billijk"],"ant":["onredelijk"]},
+  1268:{"syn":["vermogend"],"ant":["arm"]},
+  1280:{"syn":["boos"],"ant":["tevreden"]},
+  1283:{"syn":["compleet"],"ant":["onvolledig"]},
+  1313:{"ant":["afwezig"]},
+  1334:{"syn":["kwetsbaar"],"ant":["ongevoelig"]},
+  1335:{"syn":["splinternieuw"],"ant":["oud"]},
+  1337:{"syn":["gezellig"]},
+  1350:{"syn":["fout"],"ant":["goed"]},
+  1354:{"ant":["verwacht"]},
+  1371:{"syn":["bedorven"],"ant":["vers"]},
+  1374:{"syn":["eenvoudig"],"ant":["ingewikkeld"]},
+  1376:{"syn":["precies"],"ant":["algemeen"]},
+  1379:{"syn":["rustig"],"ant":["luidruchtig"]},
+  1385:{"syn":["bekend"],"ant":["onbekend"]}
+};
+const NOUN_SYNONYMS = {
+  4:["dier"],
+  10:["eigendom"],
+  15:["treffer"],
+  17:["kenmerk"],
+  27:["emotie"],
+  33:["geheugen"],
+  36:["dagblad"],
+  37:["herrie"],
+  45:["studie"],
+  61:["wortels"],
+  67:["bezittingen"],
+  74:["schets"],
+  76:["magazine"],
+  90:["plan"],
+  96:["uitzicht"],
+  98:["kwaal"],
+  164:["herinnering"],
+  168:["sekse"],
+  176:["eigenschap"],
+  180:["lijf"],
+  181:["beweging"],
+  182:["fan"],
+  188:["peil"],
+  190:["thema"],
+  194:["tactiek"],
+  195:["ploeg"],
+  205:["aanvraag"],
+  206:["voedsel"],
+  219:["plaats"],
+  222:["voorschrift"],
+  223:["voorschrift"],
+  256:["vuilnis"],
+  259:["optie"],
+  266:["principe"],
+  275:["avondeten"],
+  289:["geldzaken"],
+  290:["kans"],
+  292:["conversatie"],
+  299:["kussen"],
+  301:["kamergenoot"],
+  312:["voorstelling"],
+  322:["plaats"],
+  325:["maatschappij"],
+  328:["café"],
+  330:["hoofdkussen"],
+  338:["nummer"],
+  339:["vliegveld"],
+  350:["situatie"],
+  351:["vreemdeling"],
+  354:["dienst"],
+  359:["trottoir"],
+  378:["plicht"],
+  439:["boodschap"],
+  446:["donsdeken"],
+  451:["donkerte"],
+  454:["archipel"],
+  483:["ijskast"],
+  500:["neerslag"],
+  508:["humeur"],
+  513:["tegenvaller"],
+  522:["afwisseling"],
+  523:["wijziging"],
+  546:["badkleding"],
+  594:["hoeveelheid"],
+  598:["divisie"],
+  605:["afbeelding"],
+  613:["gemeenschap"],
+  621:["bezitter"],
+  622:["vereiste"],
+  626:["verschijnsel"],
+  627:["brochure"],
+  629:["positie"],
+  630:["rompslomp"],
+  637:["professor"],
+  645:["begrip"],
+  648:["advocaat"],
+  649:["optie"],
+  654:["samenleving"],
+  655:["leiding"],
+  667:["hulp"],
+  668:["educatie"],
+  671:["flauwekul"],
+  672:["training"],
+  676:["beraad"],
+  679:["medewerkers"],
+  681:["standpunt"],
+  682:["plek"],
+  685:["loon"],
+  690:["branche"],
+  691:["geslacht"],
+  693:["expert"],
+  699:["aanleg"],
+  700:["methode"],
+  712:["verrassing"],
+  714:["afgevaardigde"],
+  715:["zorg"],
+  720:["medewerker"],
+  783:["evenwicht"],
+  784:["evaluatie"],
+  787:["besluit"],
+  790:["hersenen"],
+  796:["verbinding"],
+  798:["beheersing"],
+  800:["service"],
+  805:["spanning"],
+  806:["inlevingsvermogen"],
+  812:["gemopper"],
+  818:["brein"],
+  820:["ondersteuning"],
+  828:["presentatie"],
+  829:["werknemer"],
+  844:["tijdvak"],
+  849:["dissertatie"],
+  856:["stress"],
+  858:["haast"],
+  860:["spanning"],
+  865:["contrast"],
+  870:["opgave"],
+  902:["jurist"],
+  909:["ritme"],
+  917:["appartement"],
+  919:["idee"],
+  921:["klank"],
+  928:["geluid"],
+  930:["wijsje"],
+  933:["drijfveer"],
+  937:["hindernis"],
+  946:["cadans"],
+  948:["omstandigheid", "toestand"],
+  953:["advies"],
+  968:["verzorging"],
+  1003:["reden"],
+  1006:["grond"],
+  1009:["inwoner"],
+  1012:["bewoner"],
+  1016:["onderwijs"],
+  1021:["limiet"],
+  1023:["aarde"],
+  1030:["zaak"],
+  1031:["grens"],
+  1034:["inspanning"],
+  1036:["milieu"],
+  1040:["taak"],
+  1050:["schouwburg"],
+  1051:["puber"],
+  1053:["situatie"],
+  1059:["voeding"],
+  1060:["illustratie"],
+  1063:["buurt"],
+  1097:["bezigheid"],
+  1100:["bericht"],
+  1106:["kampeerterrein"],
+  1109:["diner"],
+  1117:["groep"],
+  1120:["bondgenoot"],
+  1123:["centrum"],
+  1127:["leus"],
+  1140:["hoeveelheid"],
+  1144:["conflict"],
+  1147:["stemming"],
+  1166:["kwestie"],
+  1221:["krenking"],
+  1236:["resultaat"],
+  1237:["routine"],
+  1242:["impact"],
+  1243:["koffiezetapparaat"],
+  1251:["standaard"],
+  1258:["commentaar"],
+  1266:["aanleiding", "oorzaak"],
+  1272:["medestudent"],
+  1317:["geluidsbestand"],
+  1320:["document"],
+  1323:["verzameling"],
+  1326:["vrouw"],
+  1329:["liefhebber"],
+  1340:["koffieautomaat"],
+  1345:["artiest"],
+  1347:["plaats"],
+  1352:["muzikant"],
+  1353:["vondst"],
+  1362:["optreden"],
+  1364:["lezing"],
+  1367:["bui"],
+  1372:["kunstenaar"],
+  1380:["expositie"],
+  1387:["collectie"],
+  1388:["tocht"],
+  1390:["cursus"]
+};
+
 function fillTemplate(tpl, w){
   const art = w.article ? w.article+' ' : '';
   return tpl.replace(/\{art\}/g, art).replace(/\{w\}/g, w.dutch);
@@ -235,6 +578,8 @@ function render(){
   else if(view==='browse') app.innerHTML = renderBrowse();
   else if(view==='speak') app.innerHTML = renderSpeak();
   else if(view==='speakSummary') app.innerHTML = renderSpeakSummary();
+  else if(view==='synant') app.innerHTML = renderSynAnt();
+  else if(view==='synantSummary') app.innerHTML = renderSynAntSummary();
   attachHandlers();
 }
 
@@ -281,6 +626,8 @@ function renderHome(){
   const fw = filteredWords();
   const canStart = fw.length>0;
   const canSpeak = canStart && prefs.speakTypes.length>0;
+  const synAntPool = fw.filter(w => (w.category==='noun' && NOUN_SYNONYMS[w.id]) || (w.category==='adjective' && ADJ_SYNANT[w.id]));
+  const canSynAnt = synAntPool.length>0;
 
   return `
   <header class="top">
@@ -327,6 +674,14 @@ function renderHome(){
     <div class="startbar">
       <button class="ghostbtn" id="startSpeakBtn" ${canSpeak?'':'disabled'}>🗣️ Speaking practice →</button>
       <span style="color:var(--muted);font-size:13px;">${canSpeak ? '' : 'Select at least one practice type above'}</span>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Synonyms & antonyms</h2>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:14px;">Practice synonyms for nouns, and synonyms/antonyms for adjectives. Only words that have a good match are included — many specific/compound words don't.</div>
+    <div class="startbar">
+      <button class="ghostbtn" id="startSynAntBtn" ${canSynAnt?'':'disabled'}>🔀 Synonyms & antonyms →</button>
+      <span style="color:var(--muted);font-size:13px;">${canSynAnt ? synAntPool.length+' word(s) in your filters have this data' : 'No words in your current filters have synonym/antonym data yet'}</span>
     </div>
   </div>
   <div class="panel">
@@ -713,6 +1068,90 @@ function renderSpeakSummary(){
   `;
 }
 
+// ---- Synonyms & antonyms practice ----
+let synAntSession = null; // {queue:[...ids], pos, seenTotal, revealed}
+
+function buildSynAntQueue(){
+  let fw = filteredWords().filter(w => (w.category==='noun' && NOUN_SYNONYMS[w.id]) || (w.category==='adjective' && ADJ_SYNANT[w.id]));
+  shuffle(fw);
+  const size = prefs.sessionSize===999 ? fw.length : Math.min(prefs.sessionSize, fw.length);
+  return fw.slice(0, Math.max(size,1)).map(w=>w.id);
+}
+
+function startSynAntSession(){
+  const queue = buildSynAntQueue();
+  synAntSession = { queue, pos:0, seenTotal:queue.length, revealed:false };
+  view='synant';
+  render();
+}
+
+function currentSynAntItem(){
+  if(!synAntSession) return null;
+  if(synAntSession.pos >= synAntSession.queue.length) return null;
+  return synAntSession.queue[synAntSession.pos];
+}
+
+function nextSynAntItem(){
+  synAntSession.pos++;
+  synAntSession.revealed = false;
+  render();
+}
+
+function renderSynAnt(){
+  const id = currentSynAntItem();
+  if(id===null){ view='synantSummary'; return renderSynAntSummary(); }
+  const w = WORDS.find(x=>x.id===id);
+  const pct = Math.round((synAntSession.pos/synAntSession.seenTotal)*100);
+  const front = (w.article? `<span class="article">${w.article}</span>`:'') + escapeHtml(w.dutch);
+  let prompt, reveal;
+  if(w.category==='noun'){
+    const syns = NOUN_SYNONYMS[w.id];
+    prompt = 'Wat is een synoniem voor dit woord?';
+    reveal = `<b>Synoniem:</b> ${escapeHtml(syns.join(', '))}`;
+  } else {
+    const data = ADJ_SYNANT[w.id];
+    prompt = 'Wat is een synoniem en/of tegenstelling (antoniem)?';
+    const parts = [];
+    if(data.syn) parts.push(`<b>Synoniem:</b> ${escapeHtml(data.syn.join(', '))}`);
+    if(data.ant) parts.push(`<b>Antoniem:</b> ${escapeHtml(data.ant.join(', '))}`);
+    reveal = parts.join('<br>');
+  }
+  const revealBlock = synAntSession.revealed ? `<div class="speak-reveal">${reveal}</div>` : '';
+  return `
+  <header class="top">
+    <h1>🇳🇱 Dutch <span>Vocabulary Trainer</span></h1>
+    <button class="navbtn" data-nav="home">✕ End session</button>
+  </header>
+  <div class="study-wrap">
+    <div class="progressbar"><div class="fill" style="width:${pct}%"></div></div>
+    <div class="card" id="synantCard">
+      <div class="tags"><span>${CAT_LABELS[w.category]} · H${w.chapter}</span></div>
+      <div class="front">${front}</div>
+      <div class="speak-gloss">${escapeHtml(w.english)}</div>
+      <div class="speak-prompt">${prompt}</div>
+      <div class="speak-row"><button class="smallbtn" id="listenBtn">🔊 Luister</button></div>
+      ${revealBlock}
+    </div>
+    <div class="speak-row">
+      <button class="bigbtn" id="nextBtn">Volgende →</button>
+    </div>
+    <div class="flip-hint">${synAntSession.pos+1} / ${synAntSession.seenTotal} in this session</div>
+  </div>
+  `;
+}
+
+function renderSynAntSummary(){
+  const total = synAntSession ? synAntSession.seenTotal : 0;
+  return `
+  <header class="top"><h1>🇳🇱 Dutch <span>Vocabulary Trainer</span></h1></header>
+  <div class="panel summary">
+    <h2>Synoniemen & antoniemen klaar 🔀</h2>
+    <p>Je hebt ${total} woorden geoefend.</p>
+    <button class="bigbtn" data-nav="home">Back to overview</button>
+  </div>
+  `;
+}
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -770,7 +1209,7 @@ function applyImportPayload(text){
 }
 
 function attachHandlers(){
-  document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{ view = el.dataset.nav; session=null; speakSession=null; render(); });
+  document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{ view = el.dataset.nav; session=null; speakSession=null; synAntSession=null; render(); });
 
   if(view==='home'){
     document.querySelectorAll('.chip[data-chapter]').forEach(el=>{
@@ -813,6 +1252,8 @@ function attachHandlers(){
     if(startBtn) startBtn.onclick = startSession;
     const startSpeakBtn = document.getElementById('startSpeakBtn');
     if(startSpeakBtn) startSpeakBtn.onclick = startSpeakSession;
+    const startSynAntBtn = document.getElementById('startSynAntBtn');
+    if(startSynAntBtn) startSynAntBtn.onclick = startSynAntSession;
 
     const btnExportFile = document.getElementById('btnExportFile');
     if(btnExportFile) btnExportFile.onclick = downloadExportFile;
@@ -868,6 +1309,19 @@ function attachHandlers(){
           });
         };
       }
+    }
+  }
+
+  if(view==='synant'){
+    const id = currentSynAntItem();
+    if(id!==null){
+      const w = WORDS.find(x=>x.id===id);
+      const listenBtn = document.getElementById('listenBtn');
+      if(listenBtn) listenBtn.onclick = ()=> speakDutch(w.dutch);
+      const synantCard = document.getElementById('synantCard');
+      if(synantCard) synantCard.onclick = ()=>{ if(!synAntSession.revealed){ synAntSession.revealed=true; render(); } };
+      const nextBtn = document.getElementById('nextBtn');
+      if(nextBtn) nextBtn.onclick = nextSynAntItem;
     }
   }
 
