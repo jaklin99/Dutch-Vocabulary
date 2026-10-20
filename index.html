@@ -161,32 +161,35 @@
   /* writing practice */
   .writing-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
   .writing-tabs button{background:var(--panel2);border:1px solid var(--border);color:var(--muted);
-    padding:9px 16px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;}
+    padding:9px 14px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;}
   .writing-tabs button.active{background:var(--accent);color:#06121c;border-color:var(--accent);}
   .scenario-box{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent);
-    border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.5;margin-bottom:16px;}
+    border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.5;margin-bottom:16px;white-space:pre-line;}
   .scenario-box .opdracht{color:var(--accent);font-weight:700;font-size:11px;text-transform:uppercase;
     letter-spacing:.04em;margin-bottom:6px;}
   .writing-ex{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;}
   .writing-ex h3{margin:0 0 10px;font-size:16px;}
   .wfield{margin-bottom:14px;}
   .wfield .wflabel{display:block;font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4;}
-  .wfield .wflabel .fixed-text{color:var(--muted);font-style:italic;}
+  .wfield .wflabel .hint{color:var(--muted);font-style:italic;font-weight:normal;}
   .wfield textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);
     border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;min-height:50px;resize:vertical;}
-  .wfield .fixed-line{background:var(--panel2);border:1px dashed var(--border);color:var(--muted);
+  .wfield.fixed-line{background:var(--panel2);border:1px dashed var(--border);color:var(--muted);
     border-radius:8px;padding:9px 11px;font-size:14px;font-style:italic;}
-  .word-counter{font-size:12px;color:var(--muted);text-align:right;margin-top:10px;}
+  .writing-footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:4px;}
+  .word-counter{font-size:12px;color:var(--muted);}
   .word-counter.ok{color:var(--good);}
   .word-counter.off{color:var(--orange);}
-  .checklist{list-style:none;margin:14px 0 0;padding:0;}
-  .checklist li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);margin-bottom:8px;}
-  .checklist input[type=checkbox]{margin-top:2px;}
-  .grammar-tip{font-size:12px;color:var(--accent);margin-top:10px;background:rgba(79,176,255,.1);
-    border-radius:8px;padding:8px 10px;}
-  .model-toggle{margin-top:14px;}
-  .model-answer{margin-top:12px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;
-    padding:14px 16px;font-size:14px;line-height:1.6;white-space:pre-line;color:var(--text);}
+  .writing-btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .writing-btn-group button{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:9px 14px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;}
+  .writing-btn-group button.check-btn{background:var(--accent);color:#06121c;border-color:var(--accent);}
+  .writing-btn-group button:disabled{opacity:.6;cursor:default;}
+  .check-results{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;}
+  .check-item{display:flex;gap:10px;padding:7px 0;font-size:13px;align-items:flex-start;}
+  .check-item .icon{font-weight:700;min-width:16px;}
+  .check-item.pass .icon{color:var(--good);}
+  .check-item.fail .icon{color:var(--bad);}
 </style>
 </head>
 <body>
@@ -44511,7 +44514,7 @@ let session = null; // {queue:[ids], pos, correct, again, direction}
 let browseState = { search:'', level:'all', chapter:'all', category:'all' };
 let verbSession = null; // {queue, pos, correct, partial, again, checked, chosenAux, total}
 let reviewSession = null; // {queue, pos, showBack, total}
-let writingChapter = 5;
+let writingTab = 'h5';
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -45178,230 +45181,212 @@ function renderReviewSummary(){
 
 // ---- Writing practice exercises (Hoofdstuk 5\u20139, Nederlands in Actie) ----
 const WRITING_DRAFTS_KEY = 'dutchWritingDrafts_v1';
-const WRITING_CHECKS_KEY = 'dutchWritingChecks_v1';
-const WRITING_MODEL_KEY = 'dutchWritingModelShown_v1';
 
 let writingDrafts = {};
 try { const raw = safeGet(WRITING_DRAFTS_KEY); if (raw) writingDrafts = JSON.parse(raw); } catch(e) { writingDrafts = {}; }
-let writingChecks = {};
-try { const raw = safeGet(WRITING_CHECKS_KEY); if (raw) writingChecks = JSON.parse(raw); } catch(e) { writingChecks = {}; }
-let writingModelShown = {};
-try { const raw = safeGet(WRITING_MODEL_KEY); if (raw) writingModelShown = JSON.parse(raw); } catch(e) { writingModelShown = {}; }
 
 function saveWritingDrafts(){ safeSet(WRITING_DRAFTS_KEY, JSON.stringify(writingDrafts)); }
-function saveWritingChecks(){ safeSet(WRITING_CHECKS_KEY, JSON.stringify(writingChecks)); }
-function saveWritingModelShown(){ safeSet(WRITING_MODEL_KEY, JSON.stringify(writingModelShown)); }
+
+let writingResults = {};   // exid -> array of {label, pass, msg}
+
+function wordsOf(str){
+  str = String(str || '').trim();
+  return str.length ? str.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function checkAdverbComma(text){
+  const re = /\b(Ten eerste|Ten tweede|Ten derde|Bovendien|Daarnaast|Daarom|Toch|Daarna|Verder|Trouwens)\s*,\s*/gi;
+  const hits = [];
+  let m;
+  while((m = re.exec(text))){ hits.push(m[1]); }
+  if (hits.length === 0){
+    return {pass:true, msg:'Geen komma direct na een bijwoord zoals "ten eerste" of "bovendien" gevonden.'};
+  }
+  const uniek = hits.filter((v,i) => hits.indexOf(v)===i);
+  return {pass:false, msg:'Na "' + uniek.join('", "') + '" hoort meestal geen komma \u2014 het werkwoord komt direct erna. Bijvoorbeeld: "Bovendien heb ik..." in plaats van "Bovendien, ik heb...".'};
+}
 
 const WRITING_EXERCISES = [
   {
-    id:'h5', chapter:5,
-    opdracht:'Hoofdstuk 5 \u2014 Opdracht 13 (p.153)',
+    id:'h5', tab:'H5 \u2014 Brief',
+    chapter:'Hoofdstuk 5 \u2014 Opdracht 13 (p.153)',
     title:'Een sollicitatiebrief schrijven',
-    scenario:'Je hebt een vacature gezien die je aanspreekt. Schrijf een formele sollicitatiebrief (u-vorm) waarin je uitlegt waarom je solliciteert en waarom jij een goede kandidaat bent. Gebruik de vaste opening en afsluiting uit het boek.',
-    target:{min:120,max:180,guideline:true},
-    grammarTip:'Probeer een betrekkelijke bijzin met die/dat te gebruiken, bijv. \u201chet bedrijf dat op zoek is naar...\u201d.',
+    scenario:'Je hebt een vacature gezien die je aanspreekt. Schrijf een formele sollicitatiebrief (u-vorm) waarin je uitlegt waarom je solliciteert en waarom jij een goede kandidaat bent.',
+    fixedBefore:['Geachte heer, mevrouw,'],
     fields:[
-      {type:'fixed', text:'Geachte heer, mevrouw,'},
-      {type:'input', label:'Opening \u2014 <span class="fixed-text">\u201cOp de website zag ik uw vacature voor ___.\u201d of \u201cVia ___ heb ik gezien dat uw bedrijf ___ zoekt.\u201d</span>', placeholder:'bijv. Op de website zag ik uw vacature voor administratief medewerker...'},
-      {type:'input', label:'Motivatie \u2014 <span class="fixed-text">\u201cIk zou graag bij uw bedrijf willen werken omdat ___.\u201d</span>', placeholder:'bijv. ...ik al jaren ge\u00efnteresseerd ben in...'},
-      {type:'input', label:'Kwaliteit 1 \u2014 <span class="fixed-text">\u201cTen eerste ___.\u201d</span>', placeholder:'bijv. heb ik twee jaar ervaring met...'},
-      {type:'input', label:'Kwaliteit 2 \u2014 <span class="fixed-text">\u201cTen tweede ___.\u201d</span>', placeholder:'bijv. werk ik graag in een team...'},
-      {type:'fixed', text:'Ik kom graag bij u langs voor een gesprek om mijn enthousiasme voor deze functie verder toe te lichten.'},
-      {type:'fixed', text:'Bij voorbaat dank voor uw reactie. Vriendelijke groet,'}
+      {label:'Opening', hint:'"Op de website zag ik uw vacature voor ___." of "Via ___ heb ik gezien dat uw bedrijf ___ zoekt."'},
+      {label:'Motivatie', hint:'"Ik zou graag bij uw bedrijf willen werken omdat ___."'},
+      {label:'Kwaliteit 1', hint:'"Ten eerste ___."'},
+      {label:'Kwaliteit 2', hint:'"Ten tweede ___."'}
     ],
-    checklist:[
-      'Ik gebruik de u-vorm (formeel) door de hele brief.',
-      'Ik noem minstens twee concrete kwaliteiten of ervaringen.',
-      'Ik gebruik de vaste opening en afsluiting.',
-      'Mijn brief is ongeveer 120\u2013180 woorden.'
-    ],
-    model:'Geachte heer, mevrouw,\n\nOp de website zag ik uw vacature voor administratief medewerker. Ik zou graag bij uw bedrijf willen werken omdat ik op zoek ben naar een functie waarin ik mijn organisatietalent kan inzetten. Ten eerste heb ik twee jaar ervaring met administratief werk bij mijn vorige werkgever. Ten tweede werk ik graag nauwkeurig en in een team.\n\nIk kom graag bij u langs voor een gesprek om mijn enthousiasme voor deze functie verder toe te lichten.\n\nBij voorbaat dank voor uw reactie. Vriendelijke groet,'
+    fixedAfter:['Ik kom graag bij u langs voor een gesprek om mijn enthousiasme voor deze functie verder toe te lichten.', 'Bij voorbaat dank voor uw reactie. Vriendelijke groet,'],
+    target:'120\u2013180 woorden (richtlijn)',
+    checks:[
+      {label:'Woordenaantal', run:(f,text,wc) => ({pass: wc>=100 && wc<=220, msg: wc + ' woorden (richtlijn: 120\u2013180).'})},
+      {label:'Twee kwaliteiten genoemd', run:(f) => ({pass: f[2].trim().length>0 && f[3].trim().length>0, msg: (f[2].trim() && f[3].trim()) ? 'Beide kwaliteiten zijn ingevuld.' : 'Vul beide kwaliteiten in (Kwaliteit 1 en Kwaliteit 2).'})},
+      {label:'Formeel (u-vorm)', run:(f,text) => { const informeel = /\b(je|jij|jouw|jou)\b/i.test(text); return {pass: !informeel, msg: informeel ? 'Gebruik u/uw in plaats van je/jij/jouw \u2014 dit is een formele brief.' : 'Geen informele voornaamwoorden gevonden.'}; }},
+      {label:'Woordvolgorde (ten eerste / ten tweede)', run:(f,text) => checkAdverbComma(text)}
+    ]
   },
   {
-    id:'h6', chapter:6,
-    opdracht:'Hoofdstuk 6 \u2014 Opdracht 16 (p.178)',
+    id:'h6', tab:'H6 \u2014 Reactie',
+    chapter:'Hoofdstuk 6 \u2014 Opdracht 16 (p.178)',
     title:'Op een artikel reageren',
-    scenario:'Reageer schriftelijk op het artikel van Erik Scherder over drukte uit dit hoofdstuk (\u201cHoe druk jij bent, maakt niet zoveel uit...\u201d / \u201cHoe drukker, hoe beter\u201d). Gebruik 100\u2013150 woorden en gebruik minstens \u00e9\u00e9n keer de constructie \u201chet eens/oneens zijn met\u201d.',
-    target:{min:100,max:150,guideline:false},
-    grammarTip:'Probeer een zin met waar(+prepositie) of prepositie + wie te gebruiken, bijv. \u201chet onderwerp waar ik het mee eens ben\u201d.',
+    scenario:'Reageer op het artikel van Erik Scherder over drukte en stress. Schrijf 100-150 woorden en gebruik de constructie "eens/oneens zijn met".',
     fields:[
-      {type:'input', label:'<span class="fixed-text">\u201cIk ben het eens/oneens met Erik Scherder, want ___.\u201d</span>', placeholder:'geef je mening en een reden'},
-      {type:'input', label:'<span class="fixed-text">\u201cZelf vind ik dat ___.\u201d</span>', placeholder:'leg je eigen standpunt verder uit'},
-      {type:'input', label:'<span class="fixed-text">\u201cEen voorbeeld hiervan is ___.\u201d</span>', placeholder:'geef een concreet voorbeeld uit je eigen leven'},
-      {type:'input', label:'<span class="fixed-text">\u201cKortom, ___.\u201d</span>', placeholder:'sluit af met een conclusie'}
+      {label:'Standpunt', hint:'"Ik ben het eens/oneens met Erik Scherder, want ___."'},
+      {label:'Eigen mening', hint:'"Zelf vind ik dat ___."'},
+      {label:'Voorbeeld', hint:'"Een voorbeeld hiervan is ___."'},
+      {label:'Afsluiting', hint:'"Kortom, ___."'}
     ],
-    checklist:[
-      'Ik gebruik de constructie \u201chet eens/oneens zijn met\u201d.',
-      'Ik geef minstens \u00e9\u00e9n concreet voorbeeld.',
-      'Ik sluit af met een duidelijke conclusie.',
-      'Mijn tekst is 100\u2013150 woorden.'
-    ],
-    model:'Ik ben het eens met Erik Scherder, want ik merk zelf ook dat drukte niet alleen negatief hoeft te zijn. Zelf vind ik dat het vooral gaat om hoe je met drukte omgaat en of je het gevoel hebt dat je dingen onder controle hebt. Een voorbeeld hiervan is mijn eigen studie: ik heb het druk met werken, studeren en sporten, maar omdat ik het zelf gepland heb, voelt het niet als stress. Kortom, niet de hoeveelheid werk bepaalt hoe druk je je voelt, maar het gevoel van controle daarover.'
+    target:'100\u2013150 woorden',
+    checks:[
+      {label:'Woordenaantal', run:(f,text,wc) => ({pass: wc>=80 && wc<=170, msg: wc + ' woorden (richtlijn: 100\u2013150).'})},
+      {label:'"Eens/oneens zijn met" gebruikt', run:(f,text) => { const ok = /het\s+(niet\s+)?(eens|oneens)\s+(ben|bent|is|zijn)/i.test(text) || /\b(eens|oneens)\b/i.test(text); return {pass: ok, msg: ok ? 'De constructie "eens/oneens zijn met" is gevonden.' : 'Gebruik expliciet "ik ben het eens/oneens met..." in je tekst.'}; }},
+      {label:'Eigen voorbeeld gegeven', run:(f) => ({pass: wordsOf(f[2])>=3, msg: wordsOf(f[2])>=3 ? 'Je hebt een voorbeeld gegeven.' : 'Vul een concreet voorbeeld in bij "Voorbeeld".'})},
+      {label:'Woordvolgorde na bijwoorden', run:(f,text) => checkAdverbComma(text)}
+    ]
   },
   {
-    id:'h7a', chapter:7,
-    opdracht:'Hoofdstuk 7 \u2014 Opdracht 14 (p.199)',
+    id:'h7a', tab:'H7 \u2014 Gedicht',
+    chapter:'Hoofdstuk 7 \u2014 Opdracht 14 (p.199)',
     title:'Een gedicht schrijven',
-    scenario:'Schrijf een kort persoonlijk gedicht (4\u20136 regels) over het leren van Nederlands, net als het voorbeeldgedicht in het boek: \u201cNederlands / Ingewikkelde taal / Woordvolgorde, kleine woordjes / Daar hou ik van / Voortdurend.\u201d',
-    target:null,
-    grammarTip:null,
+    scenario:'Schrijf een kort gedicht (4-6 regels) over het leren van Nederlands, net als het voorbeeld in het boek.',
     fields:[
-      {type:'input', label:'Regel 1 \u2014 onderwerp (\u00e9\u00e9n woord)', placeholder:'bijv. Nederlands'},
-      {type:'input', label:'Regel 2 \u2014 een bijvoeglijk naamwoord of korte beschrijving', placeholder:'bijv. Ingewikkelde taal'},
-      {type:'input', label:'Regel 3 \u2014 wat is moeilijk of opvallend eraan', placeholder:'bijv. Woordvolgorde, kleine woordjes'},
-      {type:'input', label:'Regel 4 \u2014 hoe voel je je erbij', placeholder:'bijv. Daar hou ik van'},
-      {type:'input', label:'Regel 5 \u2014 een afsluitend woord of korte zin', placeholder:'bijv. Voortdurend'}
+      {label:'Regel 1 \u2014 onderwerp', hint:'bijv. "Nederlands"'},
+      {label:'Regel 2 \u2014 beschrijving', hint:'bijv. "Ingewikkelde taal"'},
+      {label:'Regel 3 \u2014 wat lastig of bijzonder is', hint:'bijv. "Woordvolgorde, kleine woordjes"'},
+      {label:'Regel 4 \u2014 hoe je je voelt', hint:'bijv. "Daar hou ik van"'},
+      {label:'Regel 5 \u2014 afsluitend woord', hint:'bijv. "Voortdurend"'}
     ],
-    checklist:[
-      'Mijn gedicht heeft 4\u20136 regels.',
-      'Het gaat over mijn eigen ervaring met het leren van Nederlands.',
-      'Ik hoef me niet aan een vast aantal woorden te houden \u2014 het mag kort en krachtig zijn.'
-    ],
-    model:'Nederlands\nGrappige klanken, rare uitzonderingen\nDe, het, nooit zeker\nToch blijf ik oefenen\nElke dag een beetje beter.'
+    target:'4-6 regels',
+    checks:[
+      {label:'Aantal regels', run:(f) => { const n = f.filter(v => v.trim().length>0).length; return {pass: n>=4, msg: n + ' van de 5 regels ingevuld (minimaal 4 nodig).'}; }}
+    ]
   },
   {
-    id:'h7b', chapter:7,
-    opdracht:'Hoofdstuk 7 \u2014 Opdracht 16 (p.201)',
-    title:'Appen: meeleven en geruststellen',
-    scenario:'Kies een van onderstaande berichten van een vriend(in) en reageer empathisch en geruststellend, met 30\u201340 woorden. Gebruik minstens twee uitdrukkingen uit \u201cMeeleven en geruststellen\u201d.',
-    target:{min:30,max:40,guideline:false},
-    grammarTip:null,
-    sampleMessages:[
-      'Noor: Ik ben net gezakt voor mijn rijexamen... alweer. Ik weet niet of ik het nog een keer ga proberen.',
-      'Sanne: Ik heb de sollicitatie niet gekregen, ze kozen iemand anders. Ik baal er zo van.',
-      'Tom: We moeten over twee weken verhuizen en ik heb nog helemaal niks ingepakt. Ik word er zo gestrest van.'
-    ],
+    id:'h7b', tab:'H7 \u2014 Appen',
+    chapter:'Hoofdstuk 7 \u2014 Opdracht 16 (p.201)',
+    title:'Appen \u2014 meeleven en geruststellen',
+    scenario:'Een vriend(in) appt je: "Ik ben gezakt voor mijn rijexamen... weer. Ik weet niet of ik het nog een keer ga proberen." Reageer met 30-40 woorden waarin je meeleeft en gerust stelt.',
     fields:[
-      {type:'input', label:'<span class="fixed-text">\u201cWat vervelend/naar voor je dat ___.\u201d</span>', placeholder:'benoem wat er gebeurd is'},
-      {type:'input', label:'<span class="fixed-text">\u201cIk kan me voorstellen dat ___.\u201d</span>', placeholder:'benoem hoe die persoon zich voelt'},
-      {type:'input', label:'<span class="fixed-text">\u201cMaak je geen zorgen, ___. Het komt goed.\u201d</span>', placeholder:'rond geruststellend af'}
+      {label:'Jouw reactie', hint:'"Wat vervelend/naar voor je..." / "Ik kan me voorstellen dat..." / "Maak je geen zorgen," / "Het komt goed."'}
     ],
-    checklist:[
-      'Ik gebruik minstens twee uitdrukkingen uit \u201cMeeleven en geruststellen\u201d.',
-      'Mijn reactie is 30\u201340 woorden.',
-      'Mijn reactie klinkt warm en persoonlijk.'
-    ],
-    model:'Wat naar voor je dat je weer gezakt bent! Ik kan me voorstellen dat je je daar heel rot over voelt. Maak je geen zorgen, dit zegt niks over of je het ooit gaat halen. Het komt goed, volgende keer lukt het vast wel!'
+    target:'30\u201340 woorden',
+    checks:[
+      {label:'Woordenaantal', run:(f,text,wc) => ({pass: wc>=20 && wc<=55, msg: wc + ' woorden (richtlijn: 30\u201340).'})},
+      {label:'Meeleven/geruststellen gebruikt', run:(f,text) => { const ok = /vervelend|naar voor je|kan me voorstellen|geen zorgen|komt goed|sterkte|wat erg/i.test(text); return {pass: ok, msg: ok ? 'Je gebruikt een meeleven-/geruststellingszin.' : 'Gebruik minstens \u00e9\u00e9n zin zoals "Wat vervelend voor je" of "Het komt goed."'}; }}
+    ]
   },
   {
-    id:'h8', chapter:8,
-    opdracht:'Hoofdstuk 8 \u2014 Opdracht 17 (p.225)',
+    id:'h8', tab:'H8 \u2014 Blog',
+    chapter:'Hoofdstuk 8 \u2014 Opdracht 17 (p.225)',
     title:'Een tekst voor een blog schrijven',
-    scenario:'Schrijf een blogtekst over jouw eigen duurzaamheidstip, net als in de videovoorbeelden uit dit hoofdstuk. Maximaal 100 woorden.',
-    target:{min:0,max:100,guideline:false},
-    grammarTip:'Probeer er (plaats/prepositie) te gebruiken, bijv. \u201cIk denk er vaak aan.\u201d',
+    scenario:'Schrijf een blogtekst (max. 100 woorden) over jouw eigen ervaring met een duurzaamheidstip.',
     fields:[
-      {type:'input', label:'<span class="fixed-text">\u201cMijn duurzaamheidstip is ___.\u201d</span>', placeholder:'noem je tip'},
-      {type:'input', label:'<span class="fixed-text">\u201cIk doe dit sinds ___.\u201d</span>', placeholder:'hoe lang doe je dit al'},
-      {type:'input', label:'<span class="fixed-text">\u201cHet voordeel hiervan is ___.\u201d</span>', placeholder:'leg het voordeel uit'},
-      {type:'input', label:'<span class="fixed-text">\u201cMijn tip voor jou: ___.\u201d</span>', placeholder:'geef de lezer een concreet advies'}
+      {label:'Tip', hint:'"Mijn duurzaamheidstip is ___."'},
+      {label:'Sinds wanneer', hint:'"Ik doe dit sinds ___."'},
+      {label:'Voordeel', hint:'"Het voordeel hiervan is ___."'},
+      {label:'Tip voor de lezer', hint:'"Mijn tip voor jou: ___."'}
     ],
-    checklist:[
-      'Mijn tekst is maximaal 100 woorden.',
-      'Ik vertel over een tip uit mijn eigen leven.',
-      'Ik leg het voordeel van mijn tip uit.'
-    ],
-    model:'Mijn duurzaamheidstip is om boodschappen te doen met herbruikbare tassen en potjes. Ik doe dit sinds ongeveer een jaar. Het voordeel hiervan is dat ik veel minder plastic weggooi en het scheelt ook geld, want ik koop minder verpakte producten. Mijn tip voor jou: begin klein, bijvoorbeeld met \u00e9\u00e9n herbruikbare tas in je rugzak.'
+    target:'max. 100 woorden',
+    checks:[
+      {label:'Woordenaantal', run:(f,text,wc) => ({pass: wc<=110, msg: wc + ' woorden (maximaal 100).'})},
+      {label:'Alle velden ingevuld', run:(f) => { const n = f.filter(v => v.trim().length>0).length; return {pass: n===f.length, msg: n + ' van de ' + f.length + ' velden ingevuld.'}; }}
+    ]
   },
   {
-    id:'h9', chapter:9,
-    opdracht:'Hoofdstuk 9 \u2014 Opdracht 15 (p.247)',
-    title:'Advies geven',
-    scenario:'Maria is een Nederlandse vrouw die in Spanje woont en zich daar soms eenzaam voelt. Ze twijfelt of ze terug moet verhuizen naar Nederland. Schrijf haar een persoonlijk advies van ongeveer 200 woorden.',
-    target:{min:180,max:220,guideline:true},
-    grammarTip:'Probeer zou(den) + infinitief te gebruiken, bijv. \u201cJe zou kunnen proberen om...\u201d.',
+    id:'h9', tab:'H9 \u2014 Advies',
+    chapter:'Hoofdstuk 9 \u2014 Opdracht 15 (p.247)',
+    title:'Advies geven aan Maria',
+    scenario:'Maria woont in Spanje en voelt zich niet meer thuis in Nederland. Schrijf haar een reactie (ca. 200 woorden) met jouw advies.',
     fields:[
-      {type:'input', label:'<span class="fixed-text">\u201cIk begrijp dat je je ___ voelt, omdat ___.\u201d</span>', placeholder:'benoem haar gevoel en de reden'},
-      {type:'input', label:'<span class="fixed-text">\u201cMijn advies is om ___.\u201d</span>', placeholder:'geef je eerste advies'},
-      {type:'input', label:'<span class="fixed-text">\u201cIk denk dat je ook ___ zou kunnen proberen.\u201d</span>', placeholder:'geef een tweede advies'},
-      {type:'fixed', text:'Hoe denk jij hierover?'},
-      {type:'fixed', text:'Heel veel succes!'}
+      {label:'Begrip tonen', hint:'"Ik begrijp dat je je ___ voelt, omdat ___."'},
+      {label:'Advies 1', hint:'"Mijn advies is om ___."'},
+      {label:'Advies 2', hint:'"Ik denk dat je ook ___ zou kunnen proberen."'},
+      {label:'Afsluiting', hint:'"Hoe denk jij hierover? Heel veel succes!"'}
     ],
-    checklist:[
-      'Ik geef minstens twee concrete adviezen.',
-      'Mijn tekst klinkt persoonlijk en begripvol.',
-      'Mijn tekst is ongeveer 200 woorden.'
-    ],
-    model:'Beste Maria,\n\nIk begrijp dat je je eenzaam voelt, omdat je ver van je familie en vrienden woont en het soms moeilijk is om nieuwe, hechte contacten op te bouwen in een ander land. Dat gevoel is heel normaal en het betekent niet meteen dat je verhuizing een vergissing was.\n\nMijn advies is om eerst actief nieuwe mensen te ontmoeten, bijvoorbeeld via een cursus, vrijwilligerswerk of een sportclub in jouw omgeving. Ik denk dat je ook vaker met je familie in Nederland zou kunnen videobellen, zodat de afstand minder groot voelt.\n\nProbeer jezelf ook wat tijd te geven voordat je een definitieve beslissing neemt \u2014 soms wordt het na verloop van tijd makkelijker. Hoe denk jij hierover?\n\nHeel veel succes!'
+    target:'ca. 200 woorden',
+    checks:[
+      {label:'Woordenaantal', run:(f,text,wc) => ({pass: wc>=140 && wc<=260, msg: wc + ' woorden (richtlijn: ca. 200).'})},
+      {label:'Zou(den) gebruikt', run:(f,text) => { const ok = /\bzou(den)?\b/i.test(text); return {pass: ok, msg: ok ? '"Zou(den)" komt voor in je tekst.' : 'Gebruik minstens \u00e9\u00e9n zin met "zou" of "zouden" (bijv. "Ik zou...").'}; }},
+      {label:'Twee adviezen gegeven', run:(f) => ({pass: f[1].trim().length>0 && f[2].trim().length>0, msg: (f[1].trim() && f[2].trim()) ? 'Beide adviezen zijn ingevuld.' : 'Vul beide adviesvelden in.'})}
+    ]
   }
 ];
 
-function countWords(text){
-  const t = String(text||'').trim();
-  if (!t) return 0;
-  return t.split(/\s+/).filter(Boolean).length;
+function writingFieldValues(ex){
+  const draft = writingDrafts[ex.id] || {};
+  return ex.fields.map((f, i) => draft[i] || '');
 }
 
 function writingWordCount(ex){
-  const draft = writingDrafts[ex.id] || {};
-  let total = 0;
-  ex.fields.forEach((f, i) => { if (f.type === 'input') total += countWords(draft[i]); });
-  return total;
+  const values = writingFieldValues(ex);
+  return wordsOf(values.join(' '));
 }
 
 function renderWritingCounter(ex){
-  const count = writingWordCount(ex);
-  if (!ex.target){
-    return `${count} woord${count===1?'':'en'} geschreven`;
-  }
-  const min = ex.target.min, max = ex.target.max;
-  const ok = count >= min && count <= max;
-  const label = ex.target.guideline ? 'richtlijn' : 'vereist';
-  const range = min === 0 ? `max. ${max}` : `${min}\u2013${max}`;
-  return `<span class="${ok?'ok':'off'}">${count} woorden</span> \u00b7 ${range} woorden (${label})`;
+  const wc = writingWordCount(ex);
+  return `${wc} woord${wc===1?'':'en'} \u00b7 doel: ${escapeHtml(ex.target)}`;
+}
+
+function renderWritingResults(ex){
+  const results = writingResults[ex.id];
+  if (!results) return '';
+  const items = results.map(r => `
+    <div class="check-item ${r.pass ? 'pass' : 'fail'}">
+      <span class="icon">${r.pass ? '\u2713' : '\u2717'}</span>
+      <span><strong>${escapeHtml(r.label)}.</strong> ${escapeHtml(r.msg)}</span>
+    </div>
+  `).join('');
+  return `<div class="check-results" data-resultsfor="${ex.id}">${items}</div>`;
 }
 
 function renderWritingExercise(ex){
   const draft = writingDrafts[ex.id] || {};
-  const checks = writingChecks[ex.id] || {};
-  const modelShown = !!writingModelShown[ex.id];
+  const beforeHtml = (ex.fixedBefore || []).map(t => `<div class="wfield fixed-line">${escapeHtml(t)}</div>`).join('');
   const fieldsHtml = ex.fields.map((f, i) => {
-    if (f.type === 'fixed'){
-      return `<div class="wfield"><div class="fixed-line">${escapeHtml(f.text)}</div></div>`;
-    }
     const val = draft[i] || '';
     return `<div class="wfield">
-      <label class="wflabel">${f.label}</label>
-      <textarea data-wfield="${i}" data-exid="${ex.id}" placeholder="${escapeHtml(f.placeholder||'')}" rows="2">${escapeHtml(val)}</textarea>
+      <label class="wflabel">${escapeHtml(f.label)} \u2014 <span class="hint">${escapeHtml(f.hint)}</span></label>
+      <textarea data-wfield="${i}" data-exid="${ex.id}" rows="2">${escapeHtml(val)}</textarea>
     </div>`;
   }).join('');
-  const sampleMsgs = ex.sampleMessages ? `<div class="scenario-box" style="margin-top:-6px;margin-bottom:16px;"><div class="opdracht">Kies een bericht</div>${ex.sampleMessages.map(m=>`<div style="margin-bottom:6px;">\u201c${escapeHtml(m)}\u201d</div>`).join('')}</div>` : '';
-  const checklistHtml = ex.checklist.map((c, i) => `
-    <li><input type="checkbox" data-exid="${ex.id}" data-checkidx="${i}" ${checks[i]?'checked':''}> <span>${escapeHtml(c)}</span></li>
-  `).join('');
+  const afterHtml = (ex.fixedAfter || []).map(t => `<div class="wfield fixed-line">${escapeHtml(t)}</div>`).join('');
   return `
   <div class="writing-ex" data-exid="${ex.id}">
     <h3>${escapeHtml(ex.title)}</h3>
     <div class="scenario-box">
-      <div class="opdracht">${escapeHtml(ex.opdracht)}</div>
+      <div class="opdracht">${escapeHtml(ex.chapter)}</div>
       ${escapeHtml(ex.scenario)}
     </div>
-    ${sampleMsgs}
+    ${beforeHtml}
     ${fieldsHtml}
-    <div class="word-counter writing-counter-holder" data-counterfor="${ex.id}">${renderWritingCounter(ex)}</div>
-    ${ex.grammarTip ? `<div class="grammar-tip">\uD83D\uDCA1 ${escapeHtml(ex.grammarTip)}</div>` : ''}
-    <ul class="checklist">${checklistHtml}</ul>
-    <div class="model-toggle">
-      <button class="secondary" type="button" data-modeltoggle="${ex.id}">${modelShown?'Verberg voorbeeldantwoord':'Toon voorbeeldantwoord'}</button>
-      ${modelShown ? `<div class="model-answer">${escapeHtml(ex.model)}</div>` : ''}
+    ${afterHtml}
+    <div class="writing-footer-row">
+      <span class="word-counter" data-counterfor="${ex.id}">${renderWritingCounter(ex)}</span>
+      <div class="writing-btn-group">
+        <button type="button" class="check-btn" data-checkex="${ex.id}">Controleer mijn antwoord</button>
+      </div>
     </div>
+    <div data-resultswrap="${ex.id}">${renderWritingResults(ex)}</div>
   </div>
   `;
 }
 
 function renderWriting(){
-  const chapters = [5,6,7,8,9];
-  const exercisesForChapter = WRITING_EXERCISES.filter(ex => ex.chapter === writingChapter);
-  const tabs = chapters.map(c => `<button type="button" data-wchapter="${c}" class="${writingChapter===c?'active':''}">H${c}</button>`).join('');
+  const activeEx = WRITING_EXERCISES.find(ex => ex.id === writingTab) || WRITING_EXERCISES[0];
+  const tabs = WRITING_EXERCISES.map(ex => `<button type="button" data-wtab="${ex.id}" class="${writingTab===ex.id?'active':''}">${escapeHtml(ex.tab)}</button>`).join('');
   return `
   <header class="top">
     <h1>Dutch <span>Vocabulary Trainer</span></h1>
     <button class="navbtn" id="btnBack">\u2190 Back</button>
   </header>
   <h1>Schrijfoefeningen</h1>
-  <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Gestructureerde schrijfoefeningen bij de opdrachten uit Nederlands in Actie (hoofdstuk 5 t/m 9). Vul de zinnen aan, vink je checklist af en vergelijk daarna met het voorbeeldantwoord.</div>
+  <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Nederlands in Actie \u2014 vul de zinnen aan en klik op een controleknop voor feedback.</div>
   <div class="writing-tabs">${tabs}</div>
-  ${exercisesForChapter.map(renderWritingExercise).join('')}
+  ${renderWritingExercise(activeEx)}
+  <p class="note" style="color:var(--muted);font-size:11.5px;margin-top:4px;">De snelle controle is een automatische zelfcontrole op woordenaantal, verplichte constructies en een veelgemaakte woordvolgordefout \u2014 geen volledige taalcontrole.</p>
   `;
 }
 
@@ -45550,9 +45535,9 @@ function attachHandlers(){
 
   // ---- writing practice handlers ----
   const btnWriting = document.getElementById('btnWriting');
-  if (btnWriting) btnWriting.onclick = () => { view = 'writing'; writingChapter = 5; render(); };
-  app.querySelectorAll('[data-wchapter]').forEach(el => {
-    el.onclick = () => { writingChapter = parseInt(el.getAttribute('data-wchapter')); render(); };
+  if (btnWriting) btnWriting.onclick = () => { view = 'writing'; writingTab = 'h5'; render(); };
+  app.querySelectorAll('[data-wtab]').forEach(el => {
+    el.onclick = () => { writingTab = el.getAttribute('data-wtab'); render(); };
   });
   app.querySelectorAll('textarea[data-wfield]').forEach(el => {
     el.oninput = () => {
@@ -45566,21 +45551,20 @@ function attachHandlers(){
       if (ex && holder) holder.innerHTML = renderWritingCounter(ex);
     };
   });
-  app.querySelectorAll('.checklist input[type=checkbox][data-checkidx]').forEach(el => {
-    el.onchange = () => {
-      const exid = el.getAttribute('data-exid');
-      const idx = el.getAttribute('data-checkidx');
-      if (!writingChecks[exid]) writingChecks[exid] = {};
-      writingChecks[exid][idx] = el.checked;
-      saveWritingChecks();
-    };
-  });
-  app.querySelectorAll('[data-modeltoggle]').forEach(el => {
+  app.querySelectorAll('[data-checkex]').forEach(el => {
     el.onclick = () => {
-      const exid = el.getAttribute('data-modeltoggle');
-      writingModelShown[exid] = !writingModelShown[exid];
-      saveWritingModelShown();
-      render();
+      const exid = el.getAttribute('data-checkex');
+      const ex = WRITING_EXERCISES.find(x => x.id === exid);
+      if (!ex) return;
+      const values = writingFieldValues(ex);
+      const text = values.join(' ');
+      const wc = wordsOf(text);
+      writingResults[exid] = ex.checks.map(chk => {
+        const r = chk.run(values, text, wc);
+        return {label: chk.label, pass: r.pass, msg: r.msg};
+      });
+      const wrap = document.querySelector(`[data-resultswrap="${exid}"]`);
+      if (wrap) wrap.innerHTML = renderWritingResults(ex);
     };
   });
 
