@@ -95,6 +95,16 @@
   .gradebtns button.hard{background:var(--hard);}
   .gradebtns button.good{background:var(--good);}
   .gradebtns button.easy{background:var(--easy);}
+  .card[data-fillin="1"]{cursor:default;}
+  .prep-fill-row{display:flex;gap:8px;margin-top:20px;width:100%;max-width:320px;justify-content:center;}
+  .prep-input{flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;
+    padding:10px 12px;font-size:16px;text-align:center;}
+  .prep-input:focus{outline:none;border-color:var(--accent);}
+  .prep-fill-row .smallbtn{background:var(--accent);color:#06121c;border:none;border-radius:8px;padding:10px 16px;
+    font-size:14px;font-weight:700;cursor:pointer;}
+  .prep-fill-result{margin-top:18px;font-size:17px;font-weight:700;}
+  .prep-fill-result.prep-correct{color:var(--good);}
+  .prep-fill-result.prep-incorrect{color:var(--bad);}
   .kbd{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11px;}
   .exitbar{margin-top:14px;text-align:center;}
   .exitbar a{color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;}
@@ -44412,9 +44422,78 @@ const LEVELS_PRESENT = LEVEL_ORDER.filter(lv => WORDS.some(w=>w.level===lv));
 
 function chapKey(level, num){ return level + '|' + num; }
 
+// ---- Preposition fill-in-the-blank helpers (for the "preposition_phrase" category) ----
+const DUTCH_PREPOSITIONS = ['aan','achter','bij','binnen','boven','buiten','dankzij','door','dwars',
+  'gedurende','in','langs','met','na','naar','naast','namens','om','omstreeks','omtrent','ondanks',
+  'onder','op','over','per','rond','rondom','sinds','tegen','tegenover','tijdens','tot','tussen',
+  'uit','van','vanaf','vanuit','vanwege','via','volgens','voor','zonder','dichtbij'];
+const PREP_SET = new Set(DUTCH_PREPOSITIONS);
+
+// Figures out which word(s) in a preposition_phrase entry's Dutch text represent the
+// preposition(s) that should be blanked out. Returns null when the phrase is a bare
+// single-word preposition (nothing to blank) or when it's ambiguous (two or more
+// unrelated preposition words with no explicit alternation marker).
+function findPrepositionSlot(dutch){
+  if (!dutch) return null;
+  // 1) Parenthetical groups where every alternative inside is a known preposition,
+  //    e.g. "aankijken (tegen)", "lenen (aan / van)", "aanpassen, (zich) - (aan)".
+  const parenRe = /\(([^)]+)\)/g;
+  const parenCandidates = [];
+  let m;
+  while ((m = parenRe.exec(dutch))){
+    const parts = m[1].split('/').map(s => s.trim());
+    if (parts.length && parts.every(p => PREP_SET.has(p.toLowerCase()))){
+      parenCandidates.push({ start: m.index, end: m.index + m[0].length, alts: parts, kind: 'paren' });
+    }
+  }
+  if (parenCandidates.length === 1) return parenCandidates[0];
+  if (parenCandidates.length > 1) return null;
+
+  // 2) Bare slash-separated alternation where every alternative is a known preposition,
+  //    e.g. "twijfelen aan / over / tussen", "sturen aan / naar".
+  const slashRe = /([A-Za-z']+)(\s*\/\s*[A-Za-z']+)+/g;
+  const slashCandidates = [];
+  while ((m = slashRe.exec(dutch))){
+    const parts = m[0].split('/').map(s => s.trim());
+    if (parts.every(p => PREP_SET.has(p.toLowerCase()))){
+      slashCandidates.push({ start: m.index, end: m.index + m[0].length, alts: parts, kind: 'slash' });
+    }
+  }
+  if (slashCandidates.length === 1) return slashCandidates[0];
+  if (slashCandidates.length > 1) return null;
+
+  // 3) A single bare preposition word somewhere in the phrase, e.g. "zorgen voor", "op school".
+  const tokenRe = /[A-Za-z']+/g;
+  const singleMatches = [];
+  while ((m = tokenRe.exec(dutch))){
+    if (PREP_SET.has(m[0].toLowerCase())){
+      singleMatches.push({ start: m.index, end: m.index + m[0].length, alts: [m[0]], kind: 'single' });
+    }
+  }
+  if (singleMatches.length === 1){
+    const only = singleMatches[0];
+    // If the preposition is (essentially) the entire string, there's nothing left to
+    // blank around -- treat as a bare preposition and keep the normal flip behavior.
+    if (dutch.length - (only.end - only.start) <= 1) return null;
+    return only;
+  }
+  return null;
+}
+
+// Builds the "phrase with blank" display text for a given slot + rotation index.
+function buildBlankedPhrase(dutch, slot, rotIdx){
+  const alts = slot.alts;
+  const idx = ((rotIdx % alts.length) + alts.length) % alts.length;
+  const blank = '_'.repeat(Math.max(4, alts[idx].length + 1));
+  const inner = alts.length === 1 ? blank : alts.map((a,i) => i===idx ? blank : a).join(' / ');
+  const replacement = slot.kind === 'paren' ? `(${inner})` : inner;
+  return dutch.slice(0, slot.start) + replacement + dutch.slice(slot.end);
+}
+
 // ---- SRS helpers ----
 function getCard(id){
-  if (!srs[id]) srs[id] = { box:0, due:0, reps:0, lapses:0 };
+  if (!srs[id]) srs[id] = { box:0, due:0, reps:0, lapses:0, prepRot:0 };
+  if (srs[id].prepRot === undefined) srs[id].prepRot = 0;
   return srs[id];
 }
 function isNew(id){ return !srs[id] || srs[id].reps === 0; }
@@ -44515,6 +44594,10 @@ let browseState = { search:'', level:'all', chapter:'all', category:'all' };
 let verbSession = null; // {queue, pos, correct, partial, again, checked, chosenAux, total}
 let reviewSession = null; // {queue, pos, showBack, total}
 let writingTab = 'h5';
+let prepFillChecked = false; // has the current preposition fill-in-the-blank been checked yet?
+let prepFillCorrect = null;  // was the last check correct?
+let currentCardIsFillPending = false; // true while a fill-in-the-blank card is awaiting a check
+function resetPrepFillState(){ prepFillChecked = false; prepFillCorrect = null; }
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44717,6 +44800,7 @@ function startSession(){
   if (ids.length === 0) return;
   session = { queue: ids, pos: 0, showBack:false, correct:0, again:0,
     directions: ids.map(pickDirection), total: ids.length };
+  resetPrepFillState();
   view = 'study';
   render();
 }
@@ -44732,6 +44816,14 @@ function renderStudy(){
   if (!item){ view='summary'; return renderSummary(); }
   const dir = session.directions[session.pos];
   const showDutchFront = dir === 'nl-en';
+  const prepSlot = item.category === 'preposition_phrase' ? findPrepositionSlot(item.dutch) : null;
+  const useFillIn = !!prepSlot;
+  const card = useFillIn ? getCard(item.id) : null;
+  const rotIdx = useFillIn ? (card.prepRot || 0) % prepSlot.alts.length : 0;
+  const blankedDutch = useFillIn ? buildBlankedPhrase(item.dutch, prepSlot, rotIdx) : null;
+  const correctWord = useFillIn ? prepSlot.alts[rotIdx] : null;
+  currentCardIsFillPending = useFillIn && !prepFillChecked;
+
   const front = showDutchFront
     ? `${item.article ? `<span class="article">${item.article}</span>` : ''}${escapeHtml(item.dutch)}`
     : escapeHtml(item.english);
@@ -44740,6 +44832,40 @@ function renderStudy(){
     : `<div class="en">${item.article?`<span class="article">${item.article}</span>`:''}${escapeHtml(item.dutch)}</div>`;
   const formsLine = item.forms ? `<div class="forms">${escapeHtml(item.forms)}</div>` : '';
   const pct = Math.round((session.pos/session.total)*100);
+  const tag = `<div class="tag"><span>${CAT_LABELS[item.category]}${item.optional?' <span class="opt-badge">optional</span>':''}</span><span class="direction-tag">${showDutchFront?'NL \u2192 EN':'EN \u2192 NL'}</span></div>`;
+
+  let cardBody;
+  if (currentCardIsFillPending){
+    // In en-nl mode the English meaning is the "question" -- show it as a clue above the
+    // blanked Dutch phrase, since the blank only tests the preposition itself, not the
+    // whole translation.
+    const clueLine = showDutchFront ? '' : `<div class="en" style="margin-bottom:10px;">${escapeHtml(item.english)}</div>`;
+    cardBody = `
+    ${tag}
+    ${clueLine}
+    <div class="front">${item.article ? `<span class="article">${item.article}</span>` : ''}${escapeHtml(blankedDutch)}</div>
+    <div class="prep-fill-row">
+      <input type="text" id="prepInput" class="prep-input" placeholder="type the preposition..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="smallbtn" id="btnPrepCheck">Check</button>
+    </div>
+    <div class="hint">Fill in the missing preposition and click Check (or press Enter).</div>`;
+  } else if (useFillIn){
+    const resultClass = prepFillCorrect ? 'prep-correct' : 'prep-incorrect';
+    const resultText = prepFillCorrect ? '\u2713 Correct!' : `\u2717 Not quite \u2014 correct answer: \u201c${escapeHtml(correctWord)}\u201d`;
+    cardBody = `
+    ${tag}
+    <div class="front">${item.article ? `<span class="article">${item.article}</span>` : ''}${escapeHtml(item.dutch)}</div>
+    <div class="prep-fill-result ${resultClass}">${resultText}</div>
+    <div class="back">${back}${formsLine}</div>`;
+  } else {
+    cardBody = `
+    ${tag}
+    <div class="front">${front}</div>
+    ${session.showBack ? `<div class="back">${back}${formsLine}</div>` : `<div class="hint">Click the card or press <span class="kbd">Space</span> to reveal the answer</div>`}`;
+  }
+
+  const showGrade = useFillIn ? prepFillChecked : session.showBack;
+
   return `
   <header class="top">
     <h1>Dutch <span>Vocabulary Trainer</span></h1>
@@ -44750,12 +44876,10 @@ function renderStudy(){
     <span>${session.pos+1} / ${session.total}</span>
   </div>
   <div class="progressbar"><div style="width:${pct}%"></div></div>
-  <div class="card" id="flashcard">
-    <div class="tag"><span>${CAT_LABELS[item.category]}${item.optional?' <span class="opt-badge">optional</span>':''}</span><span class="direction-tag">${showDutchFront?'NL \u2192 EN':'EN \u2192 NL'}</span></div>
-    <div class="front">${front}</div>
-    ${session.showBack ? `<div class="back">${back}${formsLine}</div>` : `<div class="hint">Click the card or press <span class="kbd">Space</span> to reveal the answer</div>`}
+  <div class="card" id="flashcard" data-fillin="${currentCardIsFillPending ? '1' : '0'}">
+    ${cardBody}
   </div>
-  ${session.showBack ? `
+  ${showGrade ? `
   <div class="gradebtns">
     <button class="again" data-grade="0">Again<small>forgot</small></button>
     <button class="hard" data-grade="1">Hard<small>tough recall</small></button>
@@ -44763,6 +44887,28 @@ function renderStudy(){
     <button class="easy" data-grade="3">Easy<small>instant</small></button>
   </div>` : ''}
   `;
+}
+
+// Resolves the current preposition fill-in-the-blank card: validates whatever is in the
+// #prepInput box (empty counts as wrong, so this also doubles as a safe "reveal anyway"
+// fallback if someone just clicks the card out of habit instead of typing an answer).
+function checkPrepFill(){
+  if (prepFillChecked) return;
+  const item = currentItem();
+  if (!item) return;
+  const prepSlot = findPrepositionSlot(item.dutch);
+  if (!prepSlot) return;
+  const srsCard = getCard(item.id);
+  const rotIdx = (srsCard.prepRot || 0) % prepSlot.alts.length;
+  const correctWord = prepSlot.alts[rotIdx];
+  const inputEl = document.getElementById('prepInput');
+  const guess = (inputEl ? inputEl.value : '').trim().toLowerCase();
+  prepFillCorrect = guess === correctWord.toLowerCase();
+  prepFillChecked = true;
+  srsCard.prepRot = ((srsCard.prepRot || 0) + 1) % prepSlot.alts.length;
+  saveSRS();
+  session.showBack = true;
+  render();
 }
 
 function grade(g){
@@ -44796,6 +44942,7 @@ function grade(g){
   }
   session.pos += 1;
   session.showBack = false;
+  resetPrepFillState();
   if (session.pos >= session.queue.length){ view = 'summary'; }
   render();
 }
@@ -45569,10 +45716,34 @@ function attachHandlers(){
   });
 
   const flashcard = document.getElementById('flashcard');
-  if (flashcard) flashcard.onclick = () => { session.showBack = true; render(); };
+  if (flashcard){
+    if (flashcard.getAttribute('data-fillin') === '1'){
+      // While a fill-in-the-blank is pending, clicking anywhere on the card (other than
+      // the input/Check button themselves) still resolves it -- using whatever's typed
+      // so far -- so the session never gets stuck if someone clicks out of habit.
+      flashcard.onclick = (e) => {
+        if (e.target.closest && e.target.closest('#prepInput, #btnPrepCheck')) return;
+        checkPrepFill();
+      };
+    } else {
+      flashcard.onclick = () => { session.showBack = true; render(); };
+    }
+  }
   app.querySelectorAll('[data-grade]').forEach(el => {
     el.onclick = (e) => { e.stopPropagation(); grade(parseInt(el.getAttribute('data-grade'))); };
   });
+  const btnPrepCheck = document.getElementById('btnPrepCheck');
+  if (btnPrepCheck){
+    btnPrepCheck.onclick = (e) => { e.stopPropagation(); checkPrepFill(); };
+    const prepInput = document.getElementById('prepInput');
+    if (prepInput){
+      prepInput.focus();
+      prepInput.onclick = (e) => { e.stopPropagation(); };
+      prepInput.onkeydown = (e) => {
+        if (e.key === 'Enter'){ e.preventDefault(); checkPrepFill(); }
+      };
+    }
+  }
   const btnExit = document.getElementById('btnExit');
   if (btnExit) btnExit.onclick = () => { view='summary'; render(); };
 
@@ -45672,6 +45843,16 @@ document.addEventListener('keydown', (e) => {
   const tag = e.target && e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   if (view === 'study' && session){
+    if (currentCardIsFillPending){
+      // A fill-in-the-blank preposition card is awaiting a Check. If focus isn't in the
+      // input (handled above), treat Space as a "reveal anyway" fallback so the session
+      // never gets stuck -- same as clicking the card.
+      if (e.code === 'Space' || e.key === ' '){
+        e.preventDefault();
+        checkPrepFill();
+      }
+      return;
+    }
     if (e.code === 'Space' || e.key === ' '){
       e.preventDefault();
       if (!session.showBack){ session.showBack = true; render(); }
